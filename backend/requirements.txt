@@ -1,0 +1,7 @@
+# VOICEGUARD backend dependencies — Phase 1 scope.
+# ML/audio dependencies (faster-whisper, speechbrain, torch, numpy, soundfile)
+# are added in Phases 3-5, with download-size estimates given before install.
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+python-multipart>=0.0.9
+pydantic>=2.9.0
