@@ -3,10 +3,11 @@
 **AI-powered voice-clone impersonation detection for phone / voice-call scenarios.**
 Smart India Hackathon prototype — Team TRUETONE.
 
-> **Status:** Phase 1 (scaffolding) — backend and frontend run end-to-end; the
-> analysis pipeline (transcription, speaker verification, AI-voice detection,
-> behavior analysis, risk engine) is added phase by phase. The roadmap is shown
-> on the app homepage.
+> **Status:** Phase 2 (audio capture & upload) — record with the microphone or
+> upload a clip and get a structured (placeholder) analysis response. The ML
+> pipeline (transcription, speaker verification, AI-voice detection, behavior
+> analysis, risk engine) is added phase by phase. The roadmap is shown on the
+> app homepage.
 
 ## Architecture (single monorepo)
 
@@ -39,6 +40,12 @@ cd frontend
 npm install
 npm run dev
 # -> http://localhost:5173
+```
+
+## Run both at once (dev helper)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_all.ps1
 ```
 
 ## Notes
