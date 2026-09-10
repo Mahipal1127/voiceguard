@@ -3,11 +3,10 @@
 **AI-powered voice-clone impersonation detection for phone / voice-call scenarios.**
 Smart India Hackathon prototype — Team TRUETONE.
 
-> **Status:** Phase 2 (audio capture & upload) — record with the microphone or
-> upload a clip and get a structured (placeholder) analysis response. The ML
-> pipeline (transcription, speaker verification, AI-voice detection, behavior
-> analysis, risk engine) is added phase by phase. The roadmap is shown on the
-> app homepage.
+> **Status:** Phase 3 (speech-to-text) — uploads/recordings are transcribed
+> with faster-whisper (base, CPU int8). Scoring signals (speaker verification,
+> AI-voice detection, behavior analysis, risk engine) land in Phases 4-7. The
+> roadmap is shown on the app homepage.
 
 ## Architecture (single monorepo)
 
@@ -54,4 +53,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_all.ps1
 - Database: SQLite file at `backend/voiceguard.db` (auto-created at startup).
 - ML model weights download on first use into `backend/models_store/` (gitignored);
   download sizes are stated before each install.
+- Speech-to-text: faster-whisper `base` (~75 MB, auto-downloads on first use).
+  `POST http://127.0.0.1:8000/warmup` preloads the model so the first analysis is fast.
 - Full setup + troubleshooting guide (incl. ffmpeg) lands in Phase 10.

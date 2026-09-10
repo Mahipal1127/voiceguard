@@ -18,6 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from db import db
+from services import transcription
 
 router = APIRouter(tags=["analyze"])
 
@@ -40,7 +41,7 @@ CONTENT_TYPE_FALLBACKS = {
 }
 
 PIPELINE_STATUS = {
-    "transcription": "planned (Phase 3 — faster-whisper)",
+    "transcription": "active (Phase 3 — faster-whisper base)",
     "speaker_match": "planned (Phase 4 — ECAPA-TDNN)",
     "ai_voice_detection": "planned (Phase 5)",
     "behavior_analysis": "planned (Phase 6)",
@@ -92,35 +93,94 @@ def _save_upload(file: UploadFile) -> Path:
     return dest
 
 
+def _run_transcription(path: Path) -> dict:
+    """Phase 3: faster-whisper transcription with graceful degradation.
+
+    The model is lazy-loaded on first use (services/transcription.py); a
+    failure here never fails the whole endpoint — it degrades to a null
+    transcript with the error surfaced in pipeline_status / reasons.
+    """
+    try:
+        result = transcription.transcribe(str(path))
+    except Exception as exc:  # noqa: BLE001 — pipeline failures are surfaced, not swallowed
+        return {"text": None, "language": None, "duration_sec": None, "error": str(exc)}
+    return {
+        "text": result["text"],
+        "language": result["language"],
+        "duration_sec": result["duration_sec"],
+        "error": None,
+    }
+
+
+@router.post("/warmup")
+async def warmup() -> dict:
+    """Force-load the transcription model so the first real analysis is fast.
+
+    First call on a fresh machine downloads the base weights (~75 MB) into
+    backend/models_store/; later calls are instant.
+    """
+    try:
+        transcription.warmup()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"Model warmup failed: {exc}")
+    return {"status": "ready", "model": transcription.DEFAULT_MODEL_SIZE}
+
+
 @router.post("/analyze")
 async def analyze_audio(file: UploadFile = File(...)) -> dict:
-    """Intake audio and return the placeholder analysis response."""
+    """Intake audio, transcribe it (Phase 3), return the analysis response."""
     path = _save_upload(file)
     duration = _probe_duration_sec(path)
+
+    tr = _run_transcription(path)
+    transcript = tr["text"]
+    language = tr["language"]
+    if tr["duration_sec"]:
+        duration = tr["duration_sec"]  # whisper's duration beats container metadata
+
+    reasons = ["Audio received, validated and stored successfully."]
+    if tr["error"]:
+        reasons.append(f"Transcription failed: {tr['error'][:150]}")
+    elif transcript:
+        preview = transcript if len(transcript) <= 80 else transcript[:80] + "…"
+        reasons.append(f"Transcript generated ({language}, faster-whisper base): '{preview}'")
+    else:
+        reasons.append("No speech detected in the clip.")
+    reasons.append(
+        "Scoring placeholder — speaker/AI-voice/behavior signals and the risk engine land in Phases 4-7."
+    )
+
+    pipeline_status = dict(PIPELINE_STATUS)
+    if tr["error"]:
+        pipeline_status["transcription"] = f"error: {tr['error'][:120]}"
+    elif not transcript:
+        pipeline_status["transcription"] = "active (no speech detected)"
 
     analysis_id: int | None = None
     with db() as conn:
         cur = conn.execute(
-            "INSERT INTO analyses (audio_filename, duration_sec, decision, reasons, details) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO analyses (audio_filename, duration_sec, transcript, decision, reasons, details) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
             (
                 path.name,
                 duration,
+                transcript,
                 "PENDING",
-                json.dumps([
-                    "Audio received, validated and stored successfully.",
-                    "Placeholder response — ML signals are wired in Phases 3-7.",
-                ]),
-                json.dumps({"pipeline_status": PIPELINE_STATUS}),
+                json.dumps(reasons),
+                json.dumps({
+                    "pipeline_status": pipeline_status,
+                    "transcription": {"language": language, "duration_sec": tr["duration_sec"]},
+                }),
             ),
         )
         analysis_id = cur.lastrowid
 
     return {
         "analysis_id": analysis_id,
-        "status": "placeholder",
+        "status": "error" if tr["error"] else ("no_speech" if not transcript else "transcribed"),
         "audio": {"filename": path.name, "duration_sec": duration},
-        "transcript": None,
+        "transcript": transcript,
+        "language": language,
         "signals": {
             "speaker_match_pct": None,
             "ai_voice_risk_pct": None,
@@ -128,9 +188,6 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         },
         "overall_risk_pct": None,
         "decision": "PENDING",
-        "reasons": [
-            "Audio received, validated and stored successfully.",
-            "Placeholder response — ML signals are wired in Phases 3-7.",
-        ],
-        "pipeline_status": PIPELINE_STATUS,
+        "reasons": reasons,
+        "pipeline_status": pipeline_status,
     }

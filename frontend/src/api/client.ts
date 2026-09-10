@@ -23,6 +23,7 @@ export interface AnalyzeResponse {
   status: string;
   audio: { filename: string; duration_sec: number | null };
   transcript: string | null;
+  language: string | null;
   signals: AnalyzeSignals;
   overall_risk_pct: number | null;
   decision: string;

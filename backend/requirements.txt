@@ -1,7 +1,13 @@
-# VOICEGUARD backend dependencies — Phase 1 scope.
-# ML/audio dependencies (faster-whisper, speechbrain, torch, numpy, soundfile)
-# are added in Phases 3-5, with download-size estimates given before install.
+# VOICEGUARD backend dependencies.
+# ML/audio dependencies are added phase by phase, with download-size
+# estimates given before install.
+
+# Phase 1 — API core
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.6
 python-multipart>=0.0.9
 pydantic>=2.9.0
+
+# Phase 3 — speech-to-text (faster-whisper / CTranslate2, CPU int8).
+# Wheels: ctranslate2 ships forward-compatible abi3 wheels; no PyTorch needed.
+faster-whisper>=1.0.0
