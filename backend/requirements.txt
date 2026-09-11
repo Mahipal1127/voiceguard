@@ -11,3 +11,7 @@ pydantic>=2.9.0
 # Phase 3 — speech-to-text (faster-whisper / CTranslate2, CPU int8).
 # Wheels: ctranslate2 ships forward-compatible abi3 wheels; no PyTorch needed.
 faster-whisper>=1.0.0
+
+# Phase 4 — speaker verification (speechbrain ECAPA-TDNN, CPU).
+# Downloads PyTorch CPU + torchaudio (~200-250 MB); ECAPA model ~80 MB on first use.
+speechbrain>=1.0.0

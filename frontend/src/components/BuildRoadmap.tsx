@@ -4,7 +4,7 @@ const ROADMAP: { id: string; title: string; done: boolean }[] = [
   { id: "01", title: "Scaffolding — FastAPI + Vite / React / TS / Tailwind", done: true },
   { id: "02", title: "Audio capture & upload", done: true },
   { id: "03", title: "Speech-to-text (faster-whisper)", done: true },
-  { id: "04", title: "Speaker verification (ECAPA-TDNN)", done: false },
+  { id: "04", title: "Speaker verification (ECAPA-TDNN)", done: true },
   { id: "05", title: "AI-voice (deepfake) detection", done: false },
   { id: "06", title: "Suspicious-request analysis", done: false },
   { id: "07", title: "Risk engine & decision thresholds", done: false },

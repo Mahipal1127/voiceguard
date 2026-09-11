@@ -2,9 +2,10 @@ import { useState, type ReactNode } from "react";
 import OverviewPage from "./pages/OverviewPage";
 import RecordPage from "./pages/RecordPage";
 import ResultPage from "./pages/ResultPage";
+import EnrollPage from "./pages/EnrollPage";
 import type { AnalyzeResponse } from "./api/client";
 
-type View = "overview" | "analyze" | "result";
+type View = "overview" | "analyze" | "enroll" | "result";
 
 function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
@@ -57,9 +58,9 @@ export default function App() {
             <NavButton active={view === "analyze" || view === "result"} onClick={() => setView("analyze")}>
               Analyze
             </NavButton>
-            <span className="cursor-not-allowed rounded-md px-3 py-1.5 font-mono text-xs text-slate-600">
-              Enroll · Phase 4
-            </span>
+            <NavButton active={view === "enroll"} onClick={() => setView("enroll")}>
+              Enroll
+            </NavButton>
           </nav>
         </header>
 
@@ -74,6 +75,7 @@ export default function App() {
             />
           )}
           {view === "result" && <ResultPage result={result} onNewAnalysis={() => setView("analyze")} />}
+          {view === "enroll" && <EnrollPage />}
         </main>
 
         <footer className="border-t border-ink-700 pt-4">

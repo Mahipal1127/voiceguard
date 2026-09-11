@@ -18,6 +18,35 @@ export interface AnalyzeSignals {
   behavior_risk_pct: number | null;
 }
 
+export interface SpeakerPerVoice {
+  name: string;
+  similarity: number;
+  match_pct: number;
+}
+
+export interface SpeakerMatchInfo {
+  matched_name: string | null;
+  match_pct: number | null;
+  similarity: number | null;
+  enrolled_count: number;
+  per_voice: SpeakerPerVoice[];
+  error: string | null;
+}
+
+export interface EnrollResponse {
+  enrollment_id: number;
+  name: string;
+  dimensions: number;
+  audio_file: string;
+  message: string;
+}
+
+export interface EnrolledVoice {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
 export interface AnalyzeResponse {
   analysis_id: number | null;
   status: string;
@@ -25,6 +54,7 @@ export interface AnalyzeResponse {
   transcript: string | null;
   language: string | null;
   signals: AnalyzeSignals;
+  speaker: SpeakerMatchInfo | null;
   overall_risk_pct: number | null;
   decision: string;
   reasons: string[];
@@ -58,4 +88,17 @@ export function analyzeAudio(file: File): Promise<AnalyzeResponse> {
   return request<AnalyzeResponse>("/analyze", { method: "POST", body: form });
 }
 
-// Phase 4 adds enrollVoice(name, file) here.
+/** POST /enroll — register a reference voice (Phase 4). */
+export function enrollVoice(name: string, file: File): Promise<EnrollResponse> {
+  const form = new FormData();
+  form.append("name", name);
+  form.append("file", file);
+  return request<EnrollResponse>("/enroll", { method: "POST", body: form });
+}
+
+/** GET /enroll — list enrolled reference voices (Phase 4). */
+export function listEnrolled(): Promise<EnrolledVoice[]> {
+  return request<EnrolledVoice[]>("/enroll");
+}
+
+// Phase 5 adds the AI-voice detection wiring server-side; no client change needed.

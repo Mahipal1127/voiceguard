@@ -71,17 +71,20 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
         <ul className="mt-4 space-y-3">
           {(
             [
-              ["Speaker match", result.signals.speaker_match_pct, result.pipeline_status.speaker_match],
-              ["AI-voice risk", result.signals.ai_voice_risk_pct, result.pipeline_status.ai_voice_detection],
-              ["Behavior risk", result.signals.behavior_risk_pct, result.pipeline_status.behavior_analysis],
+              ["Speaker match", result.signals.speaker_match_pct, result.pipeline_status.speaker_match, result.speaker?.matched_name ?? null],
+              ["AI-voice risk", result.signals.ai_voice_risk_pct, result.pipeline_status.ai_voice_detection, null],
+              ["Behavior risk", result.signals.behavior_risk_pct, result.pipeline_status.behavior_analysis, null],
             ] as const
-          ).map(([label, value, note]) => (
-            <li key={label} className="flex items-center justify-between border-b border-ink-700 pb-3 last:border-0 last:pb-0">
-              <span className="text-sm text-slate-300">{label}</span>
-              <span className="font-mono text-xs text-slate-500">
-                {value === null ? "— " : `${value.toFixed(0)}% `}
-                <span className="text-slate-600">({note})</span>
-              </span>
+          ).map(([label, value, note, detail]) => (
+            <li key={label} className="border-b border-ink-700 pb-3 last:border-0 last:pb-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-300">{label}</span>
+                <span className="font-mono text-xs text-slate-500">
+                  {value === null ? "— " : `${value.toFixed(0)}% `}
+                  <span className="text-slate-600">({note})</span>
+                </span>
+              </div>
+              {detail && <p className="mt-1 font-mono text-[11px] text-slate-500">closest reference: {detail}</p>}
             </li>
           ))}
         </ul>

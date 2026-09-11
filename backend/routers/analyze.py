@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from db import db
-from services import transcription
+from services import speaker_verification, transcription
 
 router = APIRouter(tags=["analyze"])
 
@@ -42,7 +42,7 @@ CONTENT_TYPE_FALLBACKS = {
 
 PIPELINE_STATUS = {
     "transcription": "active (Phase 3 — faster-whisper base)",
-    "speaker_match": "planned (Phase 4 — ECAPA-TDNN)",
+    "speaker_match": "active (Phase 4 — ECAPA-TDNN)",
     "ai_voice_detection": "planned (Phase 5)",
     "behavior_analysis": "planned (Phase 6)",
     "risk_engine": "planned (Phase 7)",
@@ -112,23 +112,101 @@ def _run_transcription(path: Path) -> dict:
     }
 
 
+def _run_speaker_match(path: Path) -> dict:
+    """Phase 4: compare the clip against enrolled reference voices.
+
+    With no enrollment the result is an explicit unknown/neutral state
+    (match_pct=None) — never a silent 0 or 100.
+    """
+    with db() as conn:
+        rows = conn.execute("SELECT name, embedding_path FROM enrolled_voices ORDER BY id").fetchall()
+    if not rows:
+        return {
+            "matched_name": None,
+            "match_pct": None,
+            "similarity": None,
+            "enrolled_count": 0,
+            "per_voice": [],
+            "error": None,
+        }
+
+    wav16: Path | None = None
+    try:
+        wav16 = speaker_verification.prepare_16k_mono(str(path))
+        emb = speaker_verification.extract_embedding(str(wav16))
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "matched_name": None,
+            "match_pct": None,
+            "similarity": None,
+            "enrolled_count": len(rows),
+            "per_voice": [],
+            "error": str(exc),
+        }
+    finally:
+        if wav16 is not None:
+            wav16.unlink(missing_ok=True)
+
+    per_voice = []
+    best: tuple[dict, float] | None = None
+    for row in rows:
+        try:
+            ref = json.loads(Path(row["embedding_path"]).read_text())
+            sim = speaker_verification.cosine_similarity(emb, ref["embedding"])
+        except Exception:  # noqa: BLE001 — skip corrupt references, keep matching the rest
+            continue
+        entry = {
+            "name": row["name"],
+            "similarity": round(sim, 4),
+            "match_pct": speaker_verification.similarity_to_match_pct(sim),
+        }
+        per_voice.append(entry)
+        if best is None or sim > best[1]:
+            best = (entry, sim)
+
+    if best is None:
+        return {
+            "matched_name": None,
+            "match_pct": None,
+            "similarity": None,
+            "enrolled_count": len(rows),
+            "per_voice": [],
+            "error": "no readable reference embeddings",
+        }
+    return {
+        "matched_name": best[0]["name"],
+        "match_pct": best[0]["match_pct"],
+        "similarity": best[0]["similarity"],
+        "enrolled_count": len(rows),
+        "per_voice": per_voice,
+        "error": None,
+    }
+
+
 @router.post("/warmup")
 async def warmup() -> dict:
-    """Force-load the transcription model so the first real analysis is fast.
+    """Force-load both ML models so the first real analysis is fast.
 
-    First call on a fresh machine downloads the base weights (~75 MB) into
-    backend/models_store/; later calls are instant.
+    First call on a fresh machine downloads weights (~75 MB whisper base +
+    ~80 MB ECAPA) into backend/models_store/; later calls are instant.
     """
-    try:
-        transcription.warmup()
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=503, detail=f"Model warmup failed: {exc}")
-    return {"status": "ready", "model": transcription.DEFAULT_MODEL_SIZE}
+    notes: dict[str, str] = {}
+    for key, load in (
+        ("transcription", transcription.warmup),
+        ("speaker", speaker_verification.warmup),
+    ):
+        try:
+            load()
+            notes[key] = "ready"
+        except Exception as exc:  # noqa: BLE001
+            notes[key] = f"failed: {exc}"
+    status = "ready" if all(v == "ready" for v in notes.values()) else "partial"
+    return {"status": status, "transcription": notes["transcription"], "speaker": notes["speaker"]}
 
 
 @router.post("/analyze")
 async def analyze_audio(file: UploadFile = File(...)) -> dict:
-    """Intake audio, transcribe it (Phase 3), return the analysis response."""
+    """Intake audio, transcribe (Phase 3) + speaker-match (Phase 4), respond."""
     path = _save_upload(file)
     duration = _probe_duration_sec(path)
 
@@ -138,6 +216,8 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
     if tr["duration_sec"]:
         duration = tr["duration_sec"]  # whisper's duration beats container metadata
 
+    spk = _run_speaker_match(path)
+
     reasons = ["Audio received, validated and stored successfully."]
     if tr["error"]:
         reasons.append(f"Transcription failed: {tr['error'][:150]}")
@@ -146,30 +226,42 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         reasons.append(f"Transcript generated ({language}, faster-whisper base): '{preview}'")
     else:
         reasons.append("No speech detected in the clip.")
-    reasons.append(
-        "Scoring placeholder — speaker/AI-voice/behavior signals and the risk engine land in Phases 4-7."
-    )
+    if spk["error"]:
+        reasons.append(f"Speaker check failed: {spk['error'][:120]}")
+    elif spk["enrolled_count"] == 0:
+        reasons.append("No reference voice enrolled — speaker identity is unknown/neutral (not scored 0 or 100).")
+    elif spk["match_pct"] is not None:
+        reasons.append(
+            f"Speaker match {spk['match_pct']:.0f}% vs closest reference '{spk['matched_name']}' (cosine {spk['similarity']:.3f})."
+        )
+    reasons.append("Scoring placeholder — AI-voice/behavior signals and the risk engine land in Phases 5-7.")
 
     pipeline_status = dict(PIPELINE_STATUS)
     if tr["error"]:
         pipeline_status["transcription"] = f"error: {tr['error'][:120]}"
     elif not transcript:
         pipeline_status["transcription"] = "active (no speech detected)"
+    if spk["error"]:
+        pipeline_status["speaker_match"] = f"error: {spk['error'][:120]}"
+    elif spk["enrolled_count"] == 0:
+        pipeline_status["speaker_match"] = "no reference voice enrolled (unknown/neutral)"
 
     analysis_id: int | None = None
     with db() as conn:
         cur = conn.execute(
-            "INSERT INTO analyses (audio_filename, duration_sec, transcript, decision, reasons, details) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO analyses (audio_filename, duration_sec, transcript, speaker_match_pct, decision, reasons, details) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 path.name,
                 duration,
                 transcript,
+                spk["match_pct"],
                 "PENDING",
                 json.dumps(reasons),
                 json.dumps({
                     "pipeline_status": pipeline_status,
                     "transcription": {"language": language, "duration_sec": tr["duration_sec"]},
+                    "speaker": spk,
                 }),
             ),
         )
@@ -182,10 +274,11 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         "transcript": transcript,
         "language": language,
         "signals": {
-            "speaker_match_pct": None,
+            "speaker_match_pct": spk["match_pct"],
             "ai_voice_risk_pct": None,
             "behavior_risk_pct": None,
         },
+        "speaker": spk,
         "overall_risk_pct": None,
         "decision": "PENDING",
         "reasons": reasons,
