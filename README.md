@@ -3,11 +3,10 @@
 **AI-powered voice-clone impersonation detection for phone / voice-call scenarios.**
 Smart India Hackathon prototype — Team TRUETONE.
 
-> **Status:** Phase 4 (speaker verification) — enroll a reference voice, and
-> every analysis reports a 0-100 "Speaker Match %" against it (explicit
-> unknown/neutral when nothing is enrolled). Transcription is live (Phase 3);
-> AI-voice detection, behavior analysis and the risk engine land in Phases
-> 5-7. The roadmap is shown on the app homepage.
+> **Status:** Phase 5 (AI-voice detection) — three live signals: faster-whisper
+> transcription, ECAPA speaker match, and wav2vec2 AI-voice risk (mo-thecreator,
+> Apache-2.0; chosen after a 3-model bake-off on SAPI-TTS probes, with a labeled
+> heuristic fallback). Behavior analysis and the risk engine land in Phases 6-7.
 
 ## Architecture (single monorepo)
 
@@ -56,6 +55,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_all.ps1
   download sizes are stated before each install.
 - Speech-to-text: faster-whisper `base` (~75 MB, auto-downloads on first use).
   `POST http://127.0.0.1:8000/warmup` preloads the model so the first analysis is fast.
+- AI-voice detection: wav2vec2 anti-spoofing classifier `mo-thecreator/Deepfake-audio-detection`
+  (~360 MB, Apache-2.0; 3-model bake-off evidence in `model-compare-results.json`).
+  A transparent heuristic estimate (spectral flatness / noise floor / ZCR) is always reported
+  alongside and used as the labeled fallback if the model fails. Honest limits: this is
+  decision support, not proof — no detection is 100% accurate.
 - Speaker verification: speechbrain ECAPA-TDNN (~80 MB + PyTorch CPU, downloads on
   first use). Enroll a reference voice on the **Enroll** page; analyses then report a
   "Speaker Match %" (calibrated cosine mapping; unknown/neutral when nothing is enrolled).

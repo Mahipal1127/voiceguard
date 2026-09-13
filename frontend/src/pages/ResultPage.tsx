@@ -72,7 +72,7 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
           {(
             [
               ["Speaker match", result.signals.speaker_match_pct, result.pipeline_status.speaker_match, result.speaker?.matched_name ?? null],
-              ["AI-voice risk", result.signals.ai_voice_risk_pct, result.pipeline_status.ai_voice_detection, null],
+              ["AI-voice risk", result.signals.ai_voice_risk_pct, result.pipeline_status.ai_voice_detection, result.ai_voice && result.ai_voice.source !== "model" ? "heuristic estimate" : null],
               ["Behavior risk", result.signals.behavior_risk_pct, result.pipeline_status.behavior_analysis, null],
             ] as const
           ).map(([label, value, note, detail]) => (

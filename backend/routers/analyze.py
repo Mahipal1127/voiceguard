@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from db import db
-from services import speaker_verification, transcription
+from services import ai_voice_detection, speaker_verification, transcription
 
 router = APIRouter(tags=["analyze"])
 
@@ -43,7 +43,7 @@ CONTENT_TYPE_FALLBACKS = {
 PIPELINE_STATUS = {
     "transcription": "active (Phase 3 — faster-whisper base)",
     "speaker_match": "active (Phase 4 — ECAPA-TDNN)",
-    "ai_voice_detection": "planned (Phase 5)",
+    "ai_voice_detection": "active (Phase 5 — wav2vec2)",
     "behavior_analysis": "planned (Phase 6)",
     "risk_engine": "planned (Phase 7)",
 }
@@ -110,6 +110,17 @@ def _run_transcription(path: Path) -> dict:
         "duration_sec": result["duration_sec"],
         "error": None,
     }
+
+
+def _run_ai_voice(path: Path) -> dict:
+    """Phase 5: AI-voice likelihood (model primary, labeled heuristic fallback)."""
+    try:
+        return ai_voice_detection.detect_ai_voice(str(path))
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "model_risk_pct": None, "heuristic_risk_pct": None, "risk_pct": None,
+            "source": "unavailable", "scores": [], "features": {}, "error": str(exc),
+        }
 
 
 def _run_speaker_match(path: Path) -> dict:
@@ -194,6 +205,7 @@ async def warmup() -> dict:
     for key, load in (
         ("transcription", transcription.warmup),
         ("speaker", speaker_verification.warmup),
+        ("ai_voice", ai_voice_detection.warmup),
     ):
         try:
             load()
@@ -217,6 +229,7 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         duration = tr["duration_sec"]  # whisper's duration beats container metadata
 
     spk = _run_speaker_match(path)
+    ai = _run_ai_voice(path)
 
     reasons = ["Audio received, validated and stored successfully."]
     if tr["error"]:
@@ -234,7 +247,11 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         reasons.append(
             f"Speaker match {spk['match_pct']:.0f}% vs closest reference '{spk['matched_name']}' (cosine {spk['similarity']:.3f})."
         )
-    reasons.append("Scoring placeholder — AI-voice/behavior signals and the risk engine land in Phases 5-7.")
+    if ai["error"] and ai["source"] != "model":
+        reasons.append(f"AI-voice model unavailable ({ai['error'][:90]}) — heuristic estimate {ai['heuristic_risk_pct']:.0f}% shown instead." if ai["heuristic_risk_pct"] is not None else f"AI-voice check failed: {ai['error'][:120]}")
+    else:
+        reasons.append(f"AI-voice risk: {ai['risk_pct']:.0f}% ({ai['source']}, wav2vec2 anti-spoofing; heuristic estimate {ai['heuristic_risk_pct']:.0f}%).")
+    reasons.append("Scoring placeholder — behavior signals and the risk engine land in Phases 6-7.")
 
     pipeline_status = dict(PIPELINE_STATUS)
     if tr["error"]:
@@ -245,6 +262,10 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         pipeline_status["speaker_match"] = f"error: {spk['error'][:120]}"
     elif spk["enrolled_count"] == 0:
         pipeline_status["speaker_match"] = "no reference voice enrolled (unknown/neutral)"
+    if ai["source"] == "model" and ai["model_risk_pct"] is None:
+        pipeline_status["ai_voice_detection"] = "active (heuristic estimate only — model failed)"
+    elif ai["source"] == "heuristic":
+        pipeline_status["ai_voice_detection"] = "active (heuristic estimate only — model unavailable)"
 
     analysis_id: int | None = None
     with db() as conn:
@@ -262,6 +283,7 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
                     "pipeline_status": pipeline_status,
                     "transcription": {"language": language, "duration_sec": tr["duration_sec"]},
                     "speaker": spk,
+                    "ai_voice": ai,
                 }),
             ),
         )
@@ -275,10 +297,11 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         "language": language,
         "signals": {
             "speaker_match_pct": spk["match_pct"],
-            "ai_voice_risk_pct": None,
+            "ai_voice_risk_pct": ai["risk_pct"],
             "behavior_risk_pct": None,
         },
         "speaker": spk,
+        "ai_voice": ai,
         "overall_risk_pct": None,
         "decision": "PENDING",
         "reasons": reasons,

@@ -111,7 +111,7 @@ def prepare_16k_mono(audio_path: str) -> Path:
     return dst
 
 
-def _load_wav16k_as_tensor(path: str):
+def load_wav16k_mono(path: str):
     """Read the ffmpeg-normalized 16 kHz WAV with the stdlib wave module.
 
     torchaudio 2.11 routes .load through torchcodec (not available on this
@@ -138,7 +138,7 @@ def extract_embedding(audio_path: str) -> list[float]:
     import torch
 
     classifier = _get_classifier()
-    audio = _load_wav16k_as_tensor(audio_path)
+    audio = load_wav16k_mono(audio_path)
     # speechbrain 1.1.x exposes encode_batch (batch, time); torchaudio.load
     # routes through torchcodec on this setup, so decode via ffmpeg + wave.
     with torch.no_grad():

@@ -5,7 +5,7 @@ const ROADMAP: { id: string; title: string; done: boolean }[] = [
   { id: "02", title: "Audio capture & upload", done: true },
   { id: "03", title: "Speech-to-text (faster-whisper)", done: true },
   { id: "04", title: "Speaker verification (ECAPA-TDNN)", done: true },
-  { id: "05", title: "AI-voice (deepfake) detection", done: false },
+  { id: "05", title: "AI-voice (deepfake) detection", done: true },
   { id: "06", title: "Suspicious-request analysis", done: false },
   { id: "07", title: "Risk engine & decision thresholds", done: false },
   { id: "08", title: "Dashboard / result UI", done: false },

@@ -1,0 +1,107 @@
+[
+  {
+    "model": "MelodyMachine/Deepfake-audio-detection-V2",
+    "clips": {
+      "tts_probe1.wav": {
+        "risk_pct": 0.0,
+        "heuristic_risk_pct": 38.1,
+        "scores": [
+          {
+            "label": "real",
+            "score": 1.0
+          },
+          {
+            "label": "fake",
+            "score": 0.0
+          }
+        ],
+        "error": null
+      },
+      "tts_probe2.wav": {
+        "risk_pct": 0.0,
+        "heuristic_risk_pct": 37.9,
+        "scores": [
+          {
+            "label": "real",
+            "score": 1.0
+          },
+          {
+            "label": "fake",
+            "score": 0.0
+          }
+        ],
+        "error": null
+      }
+    }
+  },
+  {
+    "model": "mo-thecreator/Deepfake-audio-detection",
+    "clips": {
+      "tts_probe1.wav": {
+        "risk_pct": 100.0,
+        "heuristic_risk_pct": 38.1,
+        "scores": [
+          {
+            "label": "fake",
+            "score": 1.0
+          },
+          {
+            "label": "real",
+            "score": 0.0
+          }
+        ],
+        "error": null
+      },
+      "tts_probe2.wav": {
+        "risk_pct": 100.0,
+        "heuristic_risk_pct": 37.9,
+        "scores": [
+          {
+            "label": "fake",
+            "score": 1.0
+          },
+          {
+            "label": "real",
+            "score": 0.0
+          }
+        ],
+        "error": null
+      }
+    }
+  },
+  {
+    "model": "Bisher/wav2vec2_ASV_deepfake_audio_detection",
+    "clips": {
+      "tts_probe1.wav": {
+        "risk_pct": 96.7,
+        "heuristic_risk_pct": 38.1,
+        "scores": [
+          {
+            "label": "fake",
+            "score": 0.9674
+          },
+          {
+            "label": "real",
+            "score": 0.0326
+          }
+        ],
+        "error": null
+      },
+      "tts_probe2.wav": {
+        "risk_pct": 0.6,
+        "heuristic_risk_pct": 37.9,
+        "scores": [
+          {
+            "label": "real",
+            "score": 0.9941
+          },
+          {
+            "label": "fake",
+            "score": 0.0059
+          }
+        ],
+        "error": null
+      }
+    }
+  }
+]

@@ -33,6 +33,21 @@ export interface SpeakerMatchInfo {
   error: string | null;
 }
 
+export interface AiVoiceScore {
+  label: string;
+  score: number;
+}
+
+export interface AiVoiceInfo {
+  model_risk_pct: number | null;
+  heuristic_risk_pct: number | null;
+  risk_pct: number | null;
+  source: string;
+  scores: AiVoiceScore[];
+  features: Record<string, number | null>;
+  error: string | null;
+}
+
 export interface EnrollResponse {
   enrollment_id: number;
   name: string;
@@ -55,6 +70,7 @@ export interface AnalyzeResponse {
   language: string | null;
   signals: AnalyzeSignals;
   speaker: SpeakerMatchInfo | null;
+  ai_voice: AiVoiceInfo | null;
   overall_risk_pct: number | null;
   decision: string;
   reasons: string[];
