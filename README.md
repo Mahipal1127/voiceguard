@@ -3,10 +3,10 @@
 **AI-powered voice-clone impersonation detection for phone / voice-call scenarios.**
 Smart India Hackathon prototype — Team TRUETONE.
 
-> **Status:** Phase 5 (AI-voice detection) — three live signals: faster-whisper
-> transcription, ECAPA speaker match, and wav2vec2 AI-voice risk (mo-thecreator,
-> Apache-2.0; chosen after a 3-model bake-off on SAPI-TTS probes, with a labeled
-> heuristic fallback). Behavior analysis and the risk engine land in Phases 6-7.
+> **Status:** Phase 6 (behavior analysis) — all four signals live: transcription,
+> speaker match, AI-voice risk and rule-based suspicious-request analysis with
+> matched-phrase explanations (doc example flags 5 phrases / 4 categories → 85%).
+> The risk engine lands in Phase 7.
 
 ## Architecture (single monorepo)
 
@@ -65,4 +65,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_all.ps1
   "Speaker Match %" (calibrated cosine mapping; unknown/neutral when nothing is enrolled).
   Windows note: without Developer Mode the model is materialized by file copy instead
   of symlinks (handled automatically).
+- Behavior analysis: rule-based regex matcher (urgency, financial, authority,
+  isolation, callback-blocking, OTP/PIN) with documented weights — see
+  `backend/services/behavior_analysis.py`. Whisper's "lakh"→"lock" mishearing
+  is handled in the amount patterns.
 - Full setup + troubleshooting guide (incl. ffmpeg) lands in Phase 10.

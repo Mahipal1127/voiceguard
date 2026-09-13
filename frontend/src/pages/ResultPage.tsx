@@ -73,7 +73,7 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
             [
               ["Speaker match", result.signals.speaker_match_pct, result.pipeline_status.speaker_match, result.speaker?.matched_name ?? null],
               ["AI-voice risk", result.signals.ai_voice_risk_pct, result.pipeline_status.ai_voice_detection, result.ai_voice && result.ai_voice.source !== "model" ? "heuristic estimate" : null],
-              ["Behavior risk", result.signals.behavior_risk_pct, result.pipeline_status.behavior_analysis, null],
+              ["Behavior risk", result.signals.behavior_risk_pct, result.pipeline_status.behavior_analysis, result.behavior?.matched_count ? `${result.behavior.matched_count} phrase(s)` : null],
             ] as const
           ).map(([label, value, note, detail]) => (
             <li key={label} className="border-b border-ink-700 pb-3 last:border-0 last:pb-0">
@@ -108,6 +108,25 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
           ))}
         </ul>
       </section>
+
+      {result.behavior && result.behavior.matched.length > 0 && (
+        <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">
+            Flagged phrases — suspicious-request analysis
+          </p>
+          <ul className="mt-4 space-y-3">
+            {result.behavior.matched.map((m, i) => (
+              <li key={`${m.category}-${i}`} className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-amber-300">{m.category}</span>
+                  <span className="font-mono text-xs text-slate-200">“{m.phrase}”</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">…{m.context}…</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <details className="rounded-xl border border-ink-700 bg-ink-900/50 p-4">
         <summary className="cursor-pointer font-mono text-xs text-slate-500 hover:text-slate-300">

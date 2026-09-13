@@ -48,6 +48,21 @@ export interface AiVoiceInfo {
   error: string | null;
 }
 
+export interface BehaviorMatch {
+  category: string;
+  phrase: string;
+  context: string;
+}
+
+export interface BehaviorInfo {
+  risk_pct: number | null;
+  matched: BehaviorMatch[];
+  categories_hit: string[];
+  matched_count: number;
+  transcript_empty?: boolean;
+  error?: string | null;
+}
+
 export interface EnrollResponse {
   enrollment_id: number;
   name: string;
@@ -71,6 +86,7 @@ export interface AnalyzeResponse {
   signals: AnalyzeSignals;
   speaker: SpeakerMatchInfo | null;
   ai_voice: AiVoiceInfo | null;
+  behavior: BehaviorInfo | null;
   overall_risk_pct: number | null;
   decision: string;
   reasons: string[];
