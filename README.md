@@ -3,10 +3,10 @@
 **AI-powered voice-clone impersonation detection for phone / voice-call scenarios.**
 Smart India Hackathon prototype — Team TRUETONE.
 
-> **Status:** Phase 6 (behavior analysis) — all four signals live: transcription,
-> speaker match, AI-voice risk and rule-based suspicious-request analysis with
-> matched-phrase explanations (doc example flags 5 phrases / 4 categories → 85%).
-> The risk engine lands in Phase 7.
+> **Status:** Phase 7 (risk engine) — the full pipeline is live end-to-end:
+> transcript + speaker match + AI-voice risk + behavior analysis -> one
+> explainable 0-100 score and an ALLOW / WARN / VERIFY / BLOCK decision
+> (doc example reproduces 88 / BLOCK). Phases 8-10 are demo polish.
 
 ## Architecture (single monorepo)
 
@@ -69,4 +69,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_all.ps1
   isolation, callback-blocking, OTP/PIN) with documented weights — see
   `backend/services/behavior_analysis.py`. Whisper's "lakh"→"lock" mishearing
   is handled in the amount patterns.
+- Risk engine: documented weights (base = 100 - speaker match, or a neutral 50
+  when nothing is enrolled; AI-voice weight 40 with a +5 model/heuristic
+  disagreement penalty; behavior weight 35) plus two explicit Section-11 rules:
+  behavior >= 80 floors the score at VERIFY, and AI-voice >= 60 + behavior >= 60
+  escalates to 88 (BLOCK) even with a convincing speaker match. Thresholds are
+  fixed: 0-29 ALLOW, 30-59 WARN, 60-79 VERIFY, 80-100 BLOCK. See
+  `backend/services/risk_engine.py`.
 - Full setup + troubleshooting guide (incl. ffmpeg) lands in Phase 10.

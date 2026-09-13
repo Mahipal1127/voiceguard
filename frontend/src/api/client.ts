@@ -87,6 +87,7 @@ export interface AnalyzeResponse {
   speaker: SpeakerMatchInfo | null;
   ai_voice: AiVoiceInfo | null;
   behavior: BehaviorInfo | null;
+  risk_components: { base: number; ai_term: number; behavior_term: number };
   overall_risk_pct: number | null;
   decision: string;
   reasons: string[];

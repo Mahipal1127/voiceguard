@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from db import db
-from services import ai_voice_detection, behavior_analysis, speaker_verification, transcription
+from services import ai_voice_detection, behavior_analysis, risk_engine, speaker_verification, transcription
 
 router = APIRouter(tags=["analyze"])
 
@@ -45,7 +45,7 @@ PIPELINE_STATUS = {
     "speaker_match": "active (Phase 4 — ECAPA-TDNN)",
     "ai_voice_detection": "active (Phase 5 — wav2vec2)",
     "behavior_analysis": "active (Phase 6 — rule-based)",
-    "risk_engine": "planned (Phase 7)",
+    "risk_engine": "active (Phase 7)",
 }
 
 
@@ -273,7 +273,14 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         reasons.append(f"Behavior risk {beh['risk_pct']:.0f}% from {beh['matched_count']} suspicious phrase(s).")
     elif not beh.get("transcript_empty"):
         reasons.append("Behavior check: no suspicious request phrases found.")
-    reasons.append("Overall risk score lands in Phase 7 (risk engine).")
+
+    risk = risk_engine.compute_overall_risk(
+        speaker_match_pct=spk["match_pct"],
+        ai_voice_risk_pct=ai["risk_pct"] if ai["risk_pct"] is not None else 0.0,
+        behavior_risk_pct=beh["risk_pct"] if beh["risk_pct"] is not None else 0.0,
+        heuristic_risk_pct=ai["heuristic_risk_pct"],
+    )
+    reasons.extend(risk["reasons"])
 
     pipeline_status = dict(PIPELINE_STATUS)
     if tr["error"]:
@@ -294,8 +301,8 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
     analysis_id: int | None = None
     with db() as conn:
         cur = conn.execute(
-            "INSERT INTO analyses (audio_filename, duration_sec, transcript, speaker_match_pct, ai_voice_risk_pct, behavior_risk_pct, decision, reasons, details) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO analyses (audio_filename, duration_sec, transcript, speaker_match_pct, ai_voice_risk_pct, behavior_risk_pct, overall_risk_pct, decision, reasons, details) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 path.name,
                 duration,
@@ -303,7 +310,8 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
                 spk["match_pct"],
                 ai["risk_pct"],
                 beh["risk_pct"],
-                "PENDING",
+                risk["overall_risk_pct"],
+                risk["decision"],
                 json.dumps(reasons),
                 json.dumps({
                     "pipeline_status": pipeline_status,
@@ -330,8 +338,9 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         "speaker": spk,
         "ai_voice": ai,
         "behavior": beh,
-        "overall_risk_pct": None,
-        "decision": "PENDING",
+        "overall_risk_pct": risk["overall_risk_pct"],
+        "decision": risk["decision"],
+        "risk_components": risk["components"],
         "reasons": reasons,
         "pipeline_status": pipeline_status,
     }
