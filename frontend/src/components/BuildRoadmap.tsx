@@ -9,7 +9,7 @@ const ROADMAP: { id: string; title: string; done: boolean }[] = [
   { id: "06", title: "Suspicious-request analysis", done: true },
   { id: "07", title: "Risk engine & decision thresholds", done: true },
   { id: "08", title: "Dashboard / result UI", done: true },
-  { id: "09", title: "Demo samples & script", done: false },
+  { id: "09", title: "Demo samples & script", done: true },
   { id: "10", title: "README & setup guide", done: false },
 ];
 
