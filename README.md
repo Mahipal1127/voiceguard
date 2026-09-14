@@ -3,10 +3,10 @@
 **AI-powered voice-clone impersonation detection for phone / voice-call scenarios.**
 Smart India Hackathon prototype — Team TRUETONE.
 
-> **Status:** Phase 7 (risk engine) — the full pipeline is live end-to-end:
-> transcript + speaker match + AI-voice risk + behavior analysis -> one
-> explainable 0-100 score and an ALLOW / WARN / VERIFY / BLOCK decision
-> (doc example reproduces 88 / BLOCK). Phases 8-10 are demo polish.
+> **Status:** Phase 8 (dashboard polish) — judge-facing result screen complete:
+> arc risk gauge with fixed threshold zones, signal breakdown bars, transcript,
+> flagged-phrase cards and the auditable score formula. Remaining: Phase 9
+> (demo samples + script) and Phase 10 (final README).
 
 ## Architecture (single monorepo)
 

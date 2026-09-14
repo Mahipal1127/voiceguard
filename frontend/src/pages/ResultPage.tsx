@@ -4,14 +4,8 @@
  */
 
 import type { AnalyzeResponse } from "../api/client";
-
-const DECISION_STYLES: Record<string, { badge: string; text: string }> = {
-  ALLOW: { badge: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30", text: "text-emerald-300" },
-  WARN: { badge: "bg-amber-400/10 text-amber-300 ring-amber-400/30", text: "text-amber-300" },
-  VERIFY: { badge: "bg-orange-400/10 text-orange-300 ring-orange-400/30", text: "text-orange-300" },
-  BLOCK: { badge: "bg-rose-500/10 text-rose-300 ring-rose-400/30", text: "text-rose-300" },
-  PENDING: { badge: "bg-slate-500/10 text-slate-300 ring-slate-400/20", text: "text-slate-300" },
-};
+import RiskGauge from "../components/RiskGauge";
+import SignalBreakdown from "../components/SignalBreakdown";
 
 interface ResultPageProps {
   result: AnalyzeResponse | null;
@@ -59,81 +53,18 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
         so no scores are computed yet.
       </p>
 
-      <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Decision</p>
-            <p
-              className={`mt-2 inline-block rounded-md px-5 py-2 font-mono text-2xl font-bold tracking-wide ring-1 ${
-                DECISION_STYLES[result.decision]?.badge ?? DECISION_STYLES.PENDING.badge
-              }`}
-            >
-              {result.decision}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Overall risk</p>
-            <p className={`mt-1 font-mono text-5xl font-semibold ${DECISION_STYLES[result.decision]?.text ?? "text-slate-300"}`}>
-              {result.overall_risk_pct === null ? "—" : result.overall_risk_pct.toFixed(0)}
-            </p>
-            <div className="mt-2 h-2 w-48 overflow-hidden rounded-full bg-ink-700">
-              <div
-                className={`h-full rounded-full ${
-                  result.decision === "ALLOW"
-                    ? "bg-emerald-400"
-                    : result.decision === "WARN"
-                      ? "bg-amber-400"
-                      : result.decision === "VERIFY"
-                        ? "bg-orange-400"
-                        : "bg-rose-500"
-                }`}
-                style={{ width: `${result.overall_risk_pct ?? 0}%` }}
-              />
-            </div>
-            <div className="mt-1 flex justify-between font-mono text-[10px] text-slate-600">
-              <span>0 ALLOW</span>
-              <span>30 WARN</span>
-              <span>60 VERIFY</span>
-              <span>80 BLOCK</span>
-            </div>
-          </div>
-        </div>
-        {result.risk_components && (
-          <p className="mt-4 border-t border-ink-700 pt-3 font-mono text-[11px] text-slate-500">
-            score = base {result.risk_components.base} + AI-voice {result.risk_components.ai_term} (weight 40) + behavior {result.risk_components.behavior_term} (weight 35) — thresholds fixed: 0-29 ALLOW, 30-59 WARN, 60-79 VERIFY, 80-100 BLOCK
-          </p>
-        )}
-      </section>
+      <RiskGauge value={result.overall_risk_pct} decision={result.decision} components={result.risk_components} />
 
-      <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Signal breakdown</p>
-        <ul className="mt-4 space-y-3">
-          {(
-            [
-              ["Speaker match", result.signals.speaker_match_pct, result.pipeline_status.speaker_match, result.speaker?.matched_name ?? null],
-              ["AI-voice risk", result.signals.ai_voice_risk_pct, result.pipeline_status.ai_voice_detection, result.ai_voice && result.ai_voice.source !== "model" ? "heuristic estimate" : null],
-              ["Behavior risk", result.signals.behavior_risk_pct, result.pipeline_status.behavior_analysis, result.behavior?.matched_count ? `${result.behavior.matched_count} phrase(s)` : null],
-            ] as const
-          ).map(([label, value, note, detail]) => (
-            <li key={label} className="border-b border-ink-700 pb-3 last:border-0 last:pb-0">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">{label}</span>
-                <span className="font-mono text-xs text-slate-500">
-                  {value === null ? "— " : `${value.toFixed(0)}% `}
-                  <span className="text-slate-600">({note})</span>
-                </span>
-              </div>
-              {detail && <p className="mt-1 font-mono text-[11px] text-slate-500">closest reference: {detail}</p>}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <SignalBreakdown result={result} />
 
       <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Transcript</p>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className={`mt-3 border-l-2 pl-4 text-base leading-relaxed ${result.transcript ? "border-emerald-400/40 text-slate-200" : "border-ink-600 text-slate-500"}`}>
           {result.transcript ?? "Available from Phase 3 (faster-whisper)."}
         </p>
+        {result.language && (
+          <p className="mt-3 font-mono text-[11px] text-slate-600">detected language: {result.language} · faster-whisper base</p>
+        )}
       </section>
 
       <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
