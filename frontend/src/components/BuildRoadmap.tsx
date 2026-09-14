@@ -10,7 +10,7 @@ const ROADMAP: { id: string; title: string; done: boolean }[] = [
   { id: "07", title: "Risk engine & decision thresholds", done: true },
   { id: "08", title: "Dashboard / result UI", done: true },
   { id: "09", title: "Demo samples & script", done: true },
-  { id: "10", title: "README & setup guide", done: false },
+  { id: "10", title: "README & setup guide", done: true },
 ];
 
 export default function BuildRoadmap() {
