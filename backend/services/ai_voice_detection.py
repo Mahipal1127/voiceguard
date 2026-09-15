@@ -12,6 +12,13 @@ label the source ("model" vs "heuristic estimate"). We never claim 100%
 detection; this is decision support, not proof.
 """
 
+import os
+
+# Cap torch threading BEFORE torch is imported anywhere — the three signals
+# run in parallel worker threads, so each model gets a share of the cores.
+os.environ.setdefault("OMP_NUM_THREADS", "4")
+os.environ.setdefault("MKL_NUM_THREADS", "4")
+
 import threading
 from pathlib import Path
 
@@ -127,6 +134,9 @@ def detect_ai_voice(audio_path: str) -> dict:
             wav16.unlink(missing_ok=True)
 
     heur = heuristic_estimate(audio.numpy())
+    # Bound CPU latency: classification runs on at most the first 12 s —
+    # plenty for a deepfake decision and keeps 30 s uploads fast.
+    audio_for_model = audio[: 16000 * 12]
     result = {
         "model_risk_pct": None,
         "heuristic_risk_pct": heur["heuristic_risk_pct"],
@@ -139,7 +149,7 @@ def detect_ai_voice(audio_path: str) -> dict:
 
     try:
         clf = _get_pipeline()
-        scores = clf({"raw": audio.numpy(), "sampling_rate": 16000})
+        scores = clf({"raw": audio_for_model.numpy(), "sampling_rate": 16000})
         p = _fake_probability(scores)
         if p is not None:
             result.update(

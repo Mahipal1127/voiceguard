@@ -7,8 +7,14 @@ it. No scores are faked — signals are null until their phases land.
 
 Phases 3-7 fill in: transcription (faster-whisper), speaker verification
 (ECAPA-TDNN), AI-voice detection, behavior analysis, risk engine.
+
+Performance: the three model signals run in PARALLEL worker threads
+(asyncio.to_thread) — total latency ~= the slowest signal instead of the
+sum — and per-signal timings are returned in the response. This also keeps
+the event loop free so /health stays responsive during analysis.
 """
 
+import asyncio
 import json
 import subprocess
 import time
@@ -237,14 +243,26 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
     path = _save_upload(file)
     duration = _probe_duration_sec(path)
 
-    tr = _run_transcription(path)
+    # Run the three model signals in parallel threads (they are independent);
+    # behavior analysis is instant and depends on the transcript, so it runs after.
+    async def _timed(fn, *args):
+        started = time.perf_counter()
+        res = await asyncio.to_thread(fn, *args)
+        return res, round(time.perf_counter() - started, 2)
+
+    pipeline_t0 = time.perf_counter()
+    (tr, tr_s), (spk, spk_s), (ai, ai_s) = await asyncio.gather(
+        _timed(_run_transcription, path),
+        _timed(_run_speaker_match, path),
+        _timed(_run_ai_voice, path),
+    )
+    wall_s = round(time.perf_counter() - pipeline_t0, 2)
+
     transcript = tr["text"]
     language = tr["language"]
     if tr["duration_sec"]:
         duration = tr["duration_sec"]  # whisper's duration beats container metadata
 
-    spk = _run_speaker_match(path)
-    ai = _run_ai_voice(path)
     beh = _run_behavior(transcript)
 
     reasons = ["Audio received, validated and stored successfully."]
@@ -319,6 +337,7 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
                     "speaker": spk,
                     "ai_voice": ai,
                     "behavior": {"risk_pct": beh["risk_pct"], "matched": beh["matched"]},
+                    "timings": {"transcription_s": tr_s, "speaker_s": spk_s, "ai_voice_s": ai_s, "pipeline_parallel_s": wall_s},
                 }),
             ),
         )
@@ -341,6 +360,12 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         "overall_risk_pct": risk["overall_risk_pct"],
         "decision": risk["decision"],
         "risk_components": risk["components"],
+        "timings": {
+            "transcription_s": tr_s,
+            "speaker_s": spk_s,
+            "ai_voice_s": ai_s,
+            "pipeline_parallel_s": wall_s,
+        },
         "reasons": reasons,
         "pipeline_status": pipeline_status,
     }

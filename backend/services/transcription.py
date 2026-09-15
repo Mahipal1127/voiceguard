@@ -10,6 +10,7 @@ The model is lazy-loaded (thread-safe) and cached per size; POST /warmup
 forces the load so the live demo never pays the cost mid-request.
 """
 
+import os
 import threading
 from pathlib import Path
 
@@ -33,6 +34,9 @@ def _get_model(model_size: str = DEFAULT_MODEL_SIZE):
                 model_size,
                 device="cpu",
                 compute_type="int8",
+                # more CPU threads = markedly faster decode for short clips
+                cpu_threads=max(4, os.cpu_count() or 4),
+                num_workers=1,
                 download_root=str(MODELS_DIR),
             )
             _models[model_size] = model
@@ -55,10 +59,12 @@ def transcribe(audio_path: str, model_size: str = DEFAULT_MODEL_SIZE) -> dict:
     # language="en" skips auto language detection — saves 1-2 s per clip in
     # the live demo (the prototype targets English phone calls). Pass None
     # to fall back to auto-detection.
+    # vad_filter=False: short 10-30 s demo clips are mostly speech, and the
+    # silero VAD pass costs ~0.5-1 s. Set True for long/noisy phone audio.
     segments, info = model.transcribe(
         audio_path,
         language="en",
-        vad_filter=True,
+        vad_filter=False,
         beam_size=1,
         condition_on_previous_text=False,  # avoids repetition drift on short clips
     )

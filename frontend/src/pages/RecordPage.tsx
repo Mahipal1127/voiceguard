@@ -34,15 +34,22 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [stageIdx, setStageIdx] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!busy) {
       setStageIdx(0);
+      setElapsed(0);
       return;
     }
-    const id = window.setInterval(() => setStageIdx((i) => (i + 1) % STAGES.length), 1100);
-    return () => window.clearInterval(id);
+    const started = performance.now();
+    const tick = window.setInterval(() => setElapsed((performance.now() - started) / 1000), 100);
+    const stageId = window.setInterval(() => setStageIdx((i) => (i + 1) % STAGES.length), 1100);
+    return () => {
+      window.clearInterval(tick);
+      window.clearInterval(stageId);
+    };
   }, [busy]);
 
   const acceptFile = useCallback((f: File) => {
@@ -78,7 +85,12 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
     try {
       onAnalyzed(await analyzeAudio(file));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis request failed.");
+      const msg = err instanceof Error ? err.message : "Analysis request failed.";
+      setError(
+        /failed to fetch|networkerror|load failed/i.test(msg)
+          ? "Cannot reach the backend. Start it with: powershell -File scripts\\start_all.ps1 (then retry — the first analysis after a restart loads the models)."
+          : msg,
+      );
     } finally {
       setBusy(false);
     }
@@ -149,9 +161,13 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
           <div className="flex items-center gap-3">
             <Spinner className="h-6 w-6 text-emerald-300" />
             <div>
-              <p className="font-mono text-sm text-emerald-300">{STAGES[stageIdx]}</p>
+              <p className="font-mono text-sm text-emerald-300">
+                {STAGES[stageIdx]} <span className="text-slate-400">{elapsed.toFixed(1)} s</span>
+              </p>
               <p className="mt-0.5 text-[11px] text-slate-500">
-                the full pipeline runs server-side in a single request — stages are a guide, not steps
+                {elapsed > 25
+                  ? "still working — models reload after a backend restart, so the first run can take up to a minute"
+                  : "the full pipeline runs server-side in a single request — stages are a guide, not steps"}
               </p>
             </div>
           </div>

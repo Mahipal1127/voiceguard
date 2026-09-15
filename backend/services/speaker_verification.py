@@ -15,6 +15,14 @@ Guardrail: with no reference voice enrolled the caller gets an explicit
 "unknown/neutral" state — never a silent 0 or 100.
 """
 
+import os
+
+# Cap torch threading BEFORE torch is imported anywhere — the three signals
+# run in parallel worker threads, so each model gets a share of the cores
+# instead of every model fighting over all of them.
+os.environ.setdefault("OMP_NUM_THREADS", "4")
+os.environ.setdefault("MKL_NUM_THREADS", "4")
+
 import threading
 from pathlib import Path
 
