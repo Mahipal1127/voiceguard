@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AudioRecorder from "../components/AudioRecorder";
 import { enrollVoice, listEnrolled, type EnrolledVoice, type EnrollResponse } from "../api/client";
+import { Banner, PrimaryButton, SectionLabel } from "../components/ui";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_EXT = [".wav", ".mp3", ".webm", ".ogg", ".m4a", ".flac"];
@@ -77,9 +78,7 @@ export default function EnrollPage() {
       </section>
 
       <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <label htmlFor="enroll-name" className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">
-          Display name
-        </label>
+        <SectionLabel>Display name</SectionLabel>
         <input
           id="enroll-name"
           value={name}
@@ -112,27 +111,23 @@ export default function EnrollPage() {
         </button>
       </div>
 
-      {warning && <p className="rounded-lg bg-amber-400/10 px-4 py-3 text-xs text-amber-300 ring-1 ring-amber-400/20">{warning}</p>}
-      {error && <p className="rounded-lg bg-rose-500/10 px-4 py-3 text-xs text-rose-300 ring-1 ring-rose-400/20">{error}</p>}
+      {warning && <Banner tone="warning">{warning}</Banner>}
+      {error && <Banner tone="error">{error}</Banner>}
       {done && (
-        <p className="rounded-lg bg-emerald-400/10 px-4 py-3 text-xs text-emerald-300 ring-1 ring-emerald-400/20">
+        <Banner tone="success">
           {done.message} ({done.dimensions}-dim embedding stored)
-        </p>
+        </Banner>
       )}
 
       <div className="flex justify-end">
-        <button
-          onClick={() => void enroll()}
-          disabled={!name.trim() || !file || busy}
-          className="rounded-lg bg-emerald-400/10 px-6 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/30 transition-colors hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <PrimaryButton onClick={() => void enroll()} disabled={!name.trim() || !file || busy}>
           {busy ? "Extracting embedding…" : "Enroll reference voice"}
-        </button>
+        </PrimaryButton>
       </div>
 
       {enrolled.length > 0 && (
         <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Enrolled voices</p>
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Enrolled voices</p>
           <ul className="mt-4 space-y-2">
             {enrolled.map((v) => (
               <li key={v.id} className="flex items-center justify-between border-b border-ink-700 pb-2 last:border-0 last:pb-0">

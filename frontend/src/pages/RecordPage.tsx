@@ -1,11 +1,23 @@
 /** Phase 2 — capture (mic) or upload a clip, then send it to POST /analyze. */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AudioRecorder from "../components/AudioRecorder";
 import { analyzeAudio, type AnalyzeResponse } from "../api/client";
+import { Banner, Card, PrimaryButton, SecondaryButton, SectionLabel, Spinner } from "../components/ui";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_EXT = [".wav", ".mp3", ".webm", ".ogg", ".m4a", ".flac"];
+
+// Honest progress guide: the pipeline runs server-side in one request; these
+// are the real stages, shown as an indeterminate walkthrough while we wait.
+const STAGES = [
+  "Uploading audio…",
+  "Transcribing speech (faster-whisper)…",
+  "Matching speaker voiceprint (ECAPA-TDNN)…",
+  "Scoring AI-voice likelihood (wav2vec2)…",
+  "Checking request language…",
+  "Combining the risk score…",
+];
 
 function formatBytes(n: number): string {
   return n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} kB`;
@@ -21,7 +33,17 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [stageIdx, setStageIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!busy) {
+      setStageIdx(0);
+      return;
+    }
+    const id = window.setInterval(() => setStageIdx((i) => (i + 1) % STAGES.length), 1100);
+    return () => window.clearInterval(id);
+  }, [busy]);
 
   const acceptFile = useCallback((f: File) => {
     setError(null);
@@ -67,73 +89,85 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
       <section>
         <h1 className="text-2xl font-semibold tracking-tight text-white">Analyze a voice clip</h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          Record 10-30 seconds with your microphone or upload a clip. The pipeline result appears on
-          the next screen — ML signals land in Phases 3-7.
+          Record 10-30 seconds with your microphone or upload a clip. You'll get the transcript,
+          three signal scores and an ALLOW / WARN / VERIFY / BLOCK decision.
         </p>
       </section>
 
-      <AudioRecorder onRecorded={setFile} onDiscard={() => setFile(null)} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <AudioRecorder onRecorded={setFile} onDiscard={() => setFile(null)} />
 
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-ink-700" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-slate-600">or upload</span>
-        <div className="h-px flex-1 bg-ink-700" />
-      </div>
-
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-        className={`rounded-xl border border-dashed p-6 text-center transition-colors ${
-          dragOver ? "border-emerald-400/50 bg-emerald-400/5" : "border-ink-600 bg-ink-900/40"
-        }`}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="audio/*,.wav,.mp3,.webm,.ogg,.m4a,.flac"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) acceptFile(f);
-            e.target.value = "";
-          }}
-        />
-        {file ? (
-          <div className="space-y-1">
-            <p className="text-sm text-slate-200">{file.name}</p>
-            <p className="font-mono text-xs text-slate-500">{formatBytes(file.size)}</p>
+        <Card className="flex flex-col p-6">
+          <SectionLabel>Upload a file</SectionLabel>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            className={`mt-4 flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center transition-colors ${
+              dragOver ? "border-emerald-400/50 bg-emerald-400/5" : "border-ink-600 bg-ink-950/40"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-8 w-8 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" />
+            </svg>
+            <p className="mt-3 text-sm text-slate-400">
+              {file ? (
+                <>
+                  <span className="text-slate-200">{file.name}</span>
+                  <span className="ml-2 font-mono text-xs text-slate-500">{formatBytes(file.size)}</span>
+                </>
+              ) : (
+                "Drag a .wav / .mp3 / .webm clip here"
+              )}
+            </p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="audio/*,.wav,.mp3,.webm,.ogg,.m4a,.flac"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) acceptFile(f);
+                e.target.value = "";
+              }}
+            />
+            <SecondaryButton className="mt-4" onClick={() => inputRef.current?.click()}>
+              {file ? "Choose another file" : "Browse files"}
+            </SecondaryButton>
           </div>
-        ) : (
-          <p className="text-sm text-slate-400">Drag a .wav / .mp3 / .webm clip here</p>
-        )}
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="mt-3 rounded-md border border-ink-600 bg-ink-800 px-4 py-1.5 font-mono text-xs text-slate-300 transition-colors hover:border-emerald-400/40 hover:text-emerald-300"
-        >
-          {file ? "Choose another file" : "Browse files"}
-        </button>
+        </Card>
       </div>
 
-      {warning && (
-        <p className="rounded-lg bg-amber-400/10 px-4 py-3 text-xs text-amber-300 ring-1 ring-amber-400/20">{warning}</p>
-      )}
-      {error && (
-        <p className="rounded-lg bg-rose-500/10 px-4 py-3 text-xs text-rose-300 ring-1 ring-rose-400/20">{error}</p>
-      )}
+      {warning && <Banner tone="warning">{warning}</Banner>}
+      {error && <Banner tone="error">{error}</Banner>}
 
-      <div className="flex justify-end">
-        <button
-          onClick={() => void analyze()}
-          disabled={!file || busy}
-          className="rounded-lg bg-emerald-400/10 px-6 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/30 transition-colors hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {busy ? "Analyzing…" : "Analyze clip →"}
-        </button>
-      </div>
+      {busy ? (
+        <Card className="p-6">
+          <div className="flex items-center gap-3">
+            <Spinner className="h-6 w-6 text-emerald-300" />
+            <div>
+              <p className="font-mono text-sm text-emerald-300">{STAGES[stageIdx]}</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                the full pipeline runs server-side in a single request — stages are a guide, not steps
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-1">
+            {STAGES.map((_, i) => (
+              <div key={i} className={`h-1 flex-1 rounded-full ${i <= stageIdx ? "bg-emerald-400/60" : "bg-ink-700"}`} />
+            ))}
+          </div>
+        </Card>
+      ) : (
+        <div className="flex justify-end">
+          <PrimaryButton onClick={() => void analyze()} disabled={!file}>
+            Analyze clip →
+          </PrimaryButton>
+        </div>
+      )}
     </div>
   );
 }

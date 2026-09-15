@@ -38,7 +38,7 @@ export default function App() {
       />
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-8">
-        <header className="flex items-center justify-between">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-ink-700/80 pb-5">
           <button onClick={() => setView("overview")} className="flex items-center gap-3 text-left">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-400/10 ring-1 ring-emerald-400/30">
               <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -64,7 +64,7 @@ export default function App() {
           </nav>
         </header>
 
-        <main className="flex-1 py-10">
+        <main key={view} className="flex-1 py-10 animate-fade-up">
           {view === "overview" && <OverviewPage onOpenAnalyzer={() => setView("analyze")} />}
           {view === "analyze" && (
             <RecordPage
