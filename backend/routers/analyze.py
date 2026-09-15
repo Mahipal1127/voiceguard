@@ -39,6 +39,12 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 _RESULT_CACHE: OrderedDict[str, dict] = OrderedDict()
 _RESULT_CACHE_MAX = 50
 
+# Serialize concurrent pipelines: on Railway's small CPUs, stacking multiple
+# analyses multiplies everyone's latency. New requests queue here and get the
+# full CPU when their turn comes (cache hits bypass the gate entirely).
+_ANALYZE_GATE = asyncio.Semaphore(1)
+
+
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB — generous for 10-30 s clips
 ALLOWED_SUFFIXES = {".wav", ".mp3", ".webm", ".ogg", ".m4a", ".flac"}
 
@@ -267,11 +273,13 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         return res, round(time.perf_counter() - started, 2)
 
     pipeline_t0 = time.perf_counter()
-    (tr, tr_s), (spk, spk_s), (ai, ai_s) = await asyncio.gather(
-        _timed(_run_transcription, path),
-        _timed(_run_speaker_match, path),
-        _timed(_run_ai_voice, path),
-    )
+    # One pipeline at a time on small CPUs — concurrent requests queue here.
+    async with _ANALYZE_GATE:
+        (tr, tr_s), (spk, spk_s), (ai, ai_s) = await asyncio.gather(
+            _timed(_run_transcription, path),
+            _timed(_run_speaker_match, path),
+            _timed(_run_ai_voice, path),
+        )
     wall_s = round(time.perf_counter() - pipeline_t0, 2)
 
     transcript = tr["text"]
