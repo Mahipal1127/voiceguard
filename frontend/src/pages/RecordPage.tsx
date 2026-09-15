@@ -9,14 +9,15 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_EXT = [".wav", ".mp3", ".webm", ".ogg", ".m4a", ".flac"];
 
 // Honest progress guide: the pipeline runs server-side in one request; these
-// are the real stages, shown as an indeterminate walkthrough while we wait.
-const STAGES = [
-  "Uploading audio…",
-  "Transcribing speech (faster-whisper)…",
-  "Matching speaker voiceprint (ECAPA-TDNN)…",
-  "Scoring AI-voice likelihood (wav2vec2)…",
-  "Checking request language…",
-  "Combining the risk score…",
+// are the real stages. `target` is the cumulative percent shown when the
+// stage begins — an indeterminate walk that always looks like progress.
+const STAGES: { label: string; target: number }[] = [
+  { label: "Uploading audio", target: 10 },
+  { label: "Transcribing speech (faster-whisper)", target: 40 },
+  { label: "Matching speaker voiceprint (ECAPA-TDNN)", target: 60 },
+  { label: "Scoring AI-voice likelihood (wav2vec2)", target: 82 },
+  { label: "Checking request language", target: 92 },
+  { label: "Combining the risk score", target: 97 },
 ];
 
 function formatBytes(n: number): string {
@@ -34,23 +35,46 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [stageIdx, setStageIdx] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const startedRef = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  // elapsed — one timer for the whole request
   useEffect(() => {
     if (!busy) {
       setStageIdx(0);
       setElapsed(0);
+      setProgress(0);
       return;
     }
-    const started = performance.now();
-    const tick = window.setInterval(() => setElapsed((performance.now() - started) / 1000), 100);
-    const stageId = window.setInterval(() => setStageIdx((i) => (i + 1) % STAGES.length), 1100);
-    return () => {
-      window.clearInterval(tick);
-      window.clearInterval(stageId);
-    };
+    startedRef.current = performance.now();
+    const tick = window.setInterval(
+      () => setElapsed((performance.now() - startedRef.current) / 1000),
+      100,
+    );
+    return () => window.clearInterval(tick);
   }, [busy]);
+
+  // stage walk — advances on a schedule, stops at the last stage until done
+  useEffect(() => {
+    if (!busy) return;
+    const stageId = window.setInterval(
+      () => setStageIdx((i) => Math.min(i + 1, STAGES.length - 1)),
+      1500,
+    );
+    return () => window.clearInterval(stageId);
+  }, [busy]);
+
+  // progress — jumps to the stage target, then creeps so the bar always moves
+  useEffect(() => {
+    if (!busy) return;
+    setProgress((p) => Math.max(p, STAGES[stageIdx].target - 3));
+    const creep = window.setInterval(() => {
+      setProgress((p) => (p < STAGES[stageIdx].target ? Math.min(STAGES[stageIdx].target, p + 0.3) : p));
+    }, 100);
+    return () => window.clearInterval(creep);
+  }, [busy, stageIdx]);
 
   const acceptFile = useCallback((f: File) => {
     setError(null);
@@ -157,24 +181,69 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
       {error && <Banner tone="error">{error}</Banner>}
 
       {busy ? (
-        <Card className="p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <Spinner className="h-6 w-6 text-accent" />
-            <div>
-              <p className="font-mono text-sm text-accent">
-                {STAGES[stageIdx]} <span className="text-muted">{elapsed.toFixed(1)} s</span>
-              </p>
-              <p className="mt-0.5 text-[11px] text-faint">
-                {elapsed > 25
-                  ? "still working — models reload after a backend restart, so the first run can take up to a minute"
-                  : "the full pipeline runs server-side in a single request — stages are a guide, not steps"}
-              </p>
+        <Card className="overflow-hidden">
+          {/* header strip */}
+          <div className="flex items-center justify-between border-b border-line bg-surface2/60 px-5 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <Spinner className="h-4 w-4 text-accent" />
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Analyzing</p>
             </div>
+            <p className="font-mono text-xs text-fg">{elapsed.toFixed(1)}s</p>
           </div>
-          <div className="mt-4 flex gap-1">
-            {STAGES.map((_, i) => (
-              <div key={i} className={`h-1 flex-1 rounded-full ${i <= stageIdx ? "bg-accent/60" : "bg-line"}`} />
-            ))}
+
+          {/* progress */}
+          <div className="px-5 py-4">
+            <div className="flex items-baseline justify-between">
+              <p className="text-sm font-medium text-fg">{STAGES[stageIdx].label}</p>
+              <p className="font-mono text-xs text-muted">{Math.round(progress)}%</p>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface2">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            {/* stage checklist */}
+            <ol className="mt-4 space-y-2.5">
+              {STAGES.map((s, i) => {
+                const state = i < stageIdx ? "done" : i === stageIdx ? "active" : "pending";
+                return (
+                  <li key={s.label} className="flex items-center gap-2.5 text-xs">
+                    {state === "done" ? (
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-ok" fill="none" stroke="currentColor" strokeWidth="2.4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : state === "active" ? (
+                      <Spinner className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    ) : (
+                      <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-line2" />
+                    )}
+                    <span
+                      className={
+                        state === "pending" ? "text-faint" : state === "active" ? "font-medium text-fg" : "text-muted"
+                      }
+                    >
+                      {s.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {elapsed > 25 && (
+              <p className="mt-3 text-[11px] leading-relaxed text-faint">
+                still working — models reload after a backend restart, so the first run can take up
+                to a minute
+              </p>
+            )}
+          </div>
+
+          {/* footer strip */}
+          <div className="border-t border-line bg-surface2/60 px-5 py-2.5">
+            <p className="font-mono text-[10px] text-faint">
+              one server request end-to-end · stages are a progress guide, not separate calls
+            </p>
           </div>
         </Card>
       ) : (

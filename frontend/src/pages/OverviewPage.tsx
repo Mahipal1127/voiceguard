@@ -82,17 +82,17 @@ export default function OverviewPage({ onOpenAnalyzer }: OverviewPageProps) {
   return (
     <div className="space-y-10">
       <section>
-        <SectionLabel>Local analysis · No cloud APIs</SectionLabel>
+        <SectionLabel>On-device fraud detection · No cloud · No recordings leave this machine</SectionLabel>
         <h1 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">
           Know who is really <span className="text-accent">on the call.</span>
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
-          Voice-clone fraud sounds exactly like someone you trust. VOICEGUARD checks a clip across
-          three independent signals and returns one explainable risk score with a clear decision —
-          computed entirely on this machine in a few seconds.
+          Voice-clone fraud sounds exactly like someone you trust. Record or upload a clip —
+          VOICEGUARD verifies the speaker, detects synthetic audio and flags social-engineering
+          language, then hands you one clear decision you can act on.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <PrimaryButton onClick={onOpenAnalyzer}>Open the analyzer →</PrimaryButton>
+          <PrimaryButton onClick={onOpenAnalyzer}>Start analyzing →</PrimaryButton>
           <span className="inline-flex items-center gap-2 rounded-full bg-surface2 px-3 py-1.5 font-mono text-[11px] text-muted ring-1 ring-line">
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-ok" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5V11z" />
@@ -126,6 +126,39 @@ export default function OverviewPage({ onOpenAnalyzer }: OverviewPageProps) {
               <span className="opacity-70">{d.range}</span>
             </span>
           ))}
+        </div>
+      </section>
+
+      <section>
+        <SectionLabel>How it works</SectionLabel>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Card className="flex items-start gap-3 p-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 font-mono text-xs font-bold text-accent ring-1 ring-accent/25">
+              1
+            </span>
+            <p className="text-xs leading-relaxed text-muted">
+              <span className="font-semibold text-fg">Capture</span> — record 10-30 s from the mic or
+              upload an existing clip.
+            </p>
+          </Card>
+          <Card className="flex items-start gap-3 p-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 font-mono text-xs font-bold text-accent ring-1 ring-accent/25">
+              2
+            </span>
+            <p className="text-xs leading-relaxed text-muted">
+              <span className="font-semibold text-fg">Analyze</span> — three independent signals run
+              in parallel, each with its own evidence.
+            </p>
+          </Card>
+          <Card className="flex items-start gap-3 p-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 font-mono text-xs font-bold text-accent ring-1 ring-accent/25">
+              3
+            </span>
+            <p className="text-xs leading-relaxed text-muted">
+              <span className="font-semibold text-fg">Decide</span> — one auditable 0-100 score maps
+              to ALLOW / WARN / VERIFY / BLOCK.
+            </p>
+          </Card>
         </div>
       </section>
 
