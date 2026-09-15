@@ -1,10 +1,13 @@
 """AI-voice (deepfake) detection (Phase 5).
 
-Primary: mo-thecreator/Deepfake-audio-detection (Apache-2.0; chosen after an
-empirical bake-off of the HF shortlist — it flagged both SAPI-TTS probes at
-100% where MelodyMachine-V2 missed them and Bisher/ASVspoof caught only one)
-— wav2vec2-base + classification head via the transformers
-`audio-classification` pipeline, CPU.
+Primary: Bisher/wav2vec2_ASV_deepfake_audio_detection (Apache-2.0; ASVspoof
+lineage — trained real vs TTS/voice-conversion). Chosen after a bake-off with
+genuine human clips (JFK, LibriSpeech) + synthetic probes: it is the only
+shortlisted model that scored real speech as real (0.2-0.3%) AND the SAPI-TTS
+fake as fake (96.7%) — mo-thecreator and MelodyMachine-V2 both false-flagged
+clean real speech. wav2vec2-base + classification head via the transformers
+`audio-classification` pipeline, CPU. Known blind spot: some legacy TTS
+sentences can be missed; the heuristic is always reported alongside.
 
 Also computed: a transparent heuristic estimate (spectral flatness, noise
 floor, zero-crossing irregularity) — always returned alongside so the UI can
@@ -27,7 +30,7 @@ from services.speaker_verification import load_wav16k_mono, prepare_16k_mono
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models_store"
 MODELS_DIR.mkdir(exist_ok=True)
 
-MODEL_ID = "mo-thecreator/Deepfake-audio-detection"
+MODEL_ID = "Bisher/wav2vec2_ASV_deepfake_audio_detection"
 
 _pipeline = None
 _lock = threading.Lock()

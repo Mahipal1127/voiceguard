@@ -36,7 +36,7 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
   const [stageIdx, setStageIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
+-
   useEffect(() => {
     if (!busy) {
       setStageIdx(0);

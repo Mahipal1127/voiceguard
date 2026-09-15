@@ -82,7 +82,7 @@ Weights download automatically on first use into `backend/models_store/`
 |---|---|---|
 | faster-whisper `base` (CTranslate2) | ~75 MB | transcription |
 | speechbrain `spkrec-ecapa-voxceleb` | ~80 MB | speaker match (Enroll + analyze) |
-| `mo-thecreator/Deepfake-audio-detection` (Apache-2.0) | ~360 MB | AI-voice risk |
+| `Bisher/wav2vec2_ASV_deepfake_audio_detection` (Apache-2.0) | ~360 MB | AI-voice risk |
 
 `POST http://127.0.0.1:8000/warmup` force-loads all three (~1-2 min first
 time incl. downloads; ~20 s after) — run it before any demo so analyses stay
@@ -133,11 +133,13 @@ one-line change in the relevant service module.
   download sizes are stated before each install.
 - Speech-to-text: faster-whisper `base` (~75 MB, auto-downloads on first use).
   `POST http://127.0.0.1:8000/warmup` preloads the model so the first analysis is fast.
-- AI-voice detection: wav2vec2 anti-spoofing classifier `mo-thecreator/Deepfake-audio-detection`
-  (~360 MB, Apache-2.0; 3-model bake-off evidence in `model-compare-results.json`).
-  A transparent heuristic estimate (spectral flatness / noise floor / ZCR) is always reported
-  alongside and used as the labeled fallback if the model fails. Honest limits: this is
-  decision support, not proof — no detection is 100% accurate.
+- AI-voice detection: wav2vec2 anti-spoofing classifier `Bisher/wav2vec2_ASV_deepfake_audio_detection`
+  (~360 MB, Apache-2.0, ASVspoof lineage) — chosen by bake-off with REAL human clips
+  (JFK, LibriSpeech: scored 0.2-0.3% fake) + synthetic probes (SAPI TTS: 96.7% fake);
+  evidence in `model-compare-results.json`. Known blind spot: some legacy TTS sentences
+  can be missed. A transparent heuristic estimate (spectral flatness / noise floor / ZCR)
+  is always reported alongside and used as the labeled fallback if the model fails.
+  Honest limits: this is decision support, not proof — no detection is 100% accurate.
 - Speaker verification: speechbrain ECAPA-TDNN (~80 MB + PyTorch CPU, downloads on
   first use). Enroll a reference voice on the **Enroll** page; analyses then report a
   "Speaker Match %" (calibrated cosine mapping; unknown/neutral when nothing is enrolled).

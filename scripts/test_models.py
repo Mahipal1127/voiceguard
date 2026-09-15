@@ -1,5 +1,5 @@
-# Compare the shortlisted anti-spoofing models on the same TTS probes.
-# Results are written to a file (stdout can be lost when piped on Windows).
+# Bake-off v2, one model per process: python test_models.py <model_id> <out.json>
+# Process isolation so a native crash in one model cannot kill the others.
 import json
 import sys
 from pathlib import Path
@@ -9,29 +9,27 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from services import ai_voice_detection as a  # noqa: E402
 
-OUT = ROOT / "model-compare-results.json"
-CLIPS = ["tts_probe1.wav", "tts_probe2.wav"]
-MODELS = [
-    "MelodyMachine/Deepfake-audio-detection-V2",
-    "mo-thecreator/Deepfake-audio-detection",
-    "Bisher/wav2vec2_ASV_deepfake_audio_detection",
-]
+model_id = sys.argv[1]
+out_path = Path(sys.argv[2])
 
-results: list[dict] = []
-for model_id in MODELS:
-    a._pipeline = None
-    a.MODEL_ID = model_id
-    entry: dict = {"model": model_id, "clips": {}}
+CLIPS = {
+    "jfk_real.wav": "REAL human (JFK public-domain)",
+    "libri_real.wav": "REAL human (LibriSpeech sample)",
+    "sapi_fake.wav": "FAKE (SAPI TTS, doc sentence)",
+}
+
+a.MODEL_ID = model_id
+entry: dict = {"model": model_id, "clips": {}}
+for clip, desc in CLIPS.items():
     try:
-        for clip in CLIPS:
-            out = a.detect_ai_voice(clip)
-            entry["clips"][clip] = {
-                "risk_pct": out["risk_pct"],
-                "heuristic_risk_pct": out["heuristic_risk_pct"],
-                "scores": out["scores"],
-                "error": out["error"],
-            }
+        out = a.detect_ai_voice(clip)
+        entry["clips"][clip] = {
+            "desc": desc,
+            "risk_pct": out["risk_pct"],
+            "heuristic_risk_pct": out["heuristic_risk_pct"],
+            "scores": out["scores"],
+            "error": out["error"],
+        }
     except Exception as exc:  # noqa: BLE001
-        entry["fatal"] = str(exc)
-    results.append(entry)
-    OUT.write_text(json.dumps(results, indent=2))
+        entry["clips"][clip] = {"desc": desc, "error": str(exc)}
+    out_path.write_text(json.dumps(entry, indent=2))  # checkpoint after every clip

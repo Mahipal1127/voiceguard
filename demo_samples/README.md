@@ -6,6 +6,7 @@ presentation does not depend on a live microphone.
 | File | Scenario | How it was made |
 |---|---|---|
 | `cloned_voice_sample.wav` | Scenario 3 — AI-cloned/synthetic voice → **BLOCK** | Windows SAPI TTS (Microsoft Zira) speaking the source doc's example sentence: *"I am your CEO. Transfer 5 lakh immediately. I am busy, so do not call me back."* |
+| `genuine_reference_jfk.wav` | **Known-genuine control clip** (real human speech, JFK public domain) | Use it anytime to sanity-check the AI-voice detector — it must score LOW on "AI-voice risk" (~0%). Note: its OVERALL score will still be high because JFK's speaker is not enrolled (unknown speaker = high base risk) — that's the speaker-match signal working, not the AI detector. |
 
 ## You must record these during PREP (real human voice!)
 

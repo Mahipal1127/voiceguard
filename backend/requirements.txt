@@ -17,7 +17,8 @@ faster-whisper>=1.0.0
 speechbrain>=1.0.0
 
 # Phase 5 — AI-voice (deepfake) detection via transformers audio-classification.
-# Model mo-thecreator/Deepfake-audio-detection (~360 MB, Apache-2.0) — chosen
-# after a 3-model bake-off on SAPI-TTS probes (see scripts/test_models.py).
-# Downloads on first use; PyTorch already present.
+# Model Bisher/wav2vec2_ASV_deepfake_audio_detection (~360 MB, Apache-2.0,
+# ASVspoof lineage) — chosen by bake-off with REAL human clips (JFK,
+# LibriSpeech) + synthetic probes; see scripts/test_models.py and
+# model-compare-results.json. Downloads on first use; PyTorch already present.
 transformers>=4.44.0
