@@ -20,6 +20,13 @@ DB_PATH = Path(
     or (Path(__file__).resolve().parent / "voiceguard.db")
 )
 
+# SQLite does NOT create parent directories: a configured path whose folder is
+# missing (e.g. a mounted volume that isn't populated yet, like /data on a
+# fresh container) crashes every startup with
+#   sqlite3.OperationalError: unable to open database file
+# Create the directory up front so the first connection always succeeds.
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS enrolled_voices (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
