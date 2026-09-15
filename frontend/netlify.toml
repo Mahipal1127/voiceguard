@@ -1,0 +1,18 @@
+# Netlify config — deploy the frontend with the backend URL baked in.
+#
+# 1. In Netlify: Site configuration → Environment variables → add
+#       VITE_API_URL = https://<your-backend-public-url>
+#    (Cloudflare Tunnel / HF Space URL — see DEPLOY.md)
+# 2. Deploys (CLI or drag-drop of frontend/dist) will embed that URL.
+#    Re-deploy whenever the backend URL changes.
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback (harmless for this single-view app, standard for React sites)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

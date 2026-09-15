@@ -8,6 +8,7 @@ no cloud services. SQLite is used for storage (see db.py).
 """
 
 from contextlib import asynccontextmanager
+import os
 import threading
 
 from fastapi import FastAPI
@@ -15,6 +16,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_db
 from routers import analyze, enroll
+
+# Local dev origins are always allowed. For shared deployments (Cloudflare
+# Tunnel / Netlify frontend / HF Space), set ALLOWED_ORIGINS to a
+# comma-separated list, e.g.:
+#   set ALLOWED_ORIGINS=https://voiceguard.netlify.app,https://x.trycloudflare.com
+_DEFAULT_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+]
+_extra_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 
 
 def _prewarm_models() -> None:
@@ -46,12 +59,7 @@ app = FastAPI(title="VOICEGUARD API", version="0.1.0", lifespan=lifespan)
 # Only the local Vite dev/preview servers call this API in prototype mode.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ],
+    allow_origins=_DEFAULT_ORIGINS + _extra_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
