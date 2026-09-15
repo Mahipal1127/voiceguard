@@ -1,0 +1,24 @@
+# VOICEGUARD backend dependencies.
+# ML/audio dependencies are added phase by phase, with download-size
+# estimates given before install.
+
+# Phase 1 — API core
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+python-multipart>=0.0.9
+pydantic>=2.9.0
+
+# Phase 3 — speech-to-text (faster-whisper / CTranslate2, CPU int8).
+# Wheels: ctranslate2 ships forward-compatible abi3 wheels; no PyTorch needed.
+faster-whisper>=1.0.0
+
+# Phase 4 — speaker verification (speechbrain ECAPA-TDNN, CPU).
+# Downloads PyTorch CPU + torchaudio (~200-250 MB); ECAPA model ~80 MB on first use.
+speechbrain>=1.0.0
+
+# Phase 5 — AI-voice (deepfake) detection via transformers audio-classification.
+# Model Bisher/wav2vec2_ASV_deepfake_audio_detection (~360 MB, Apache-2.0,
+# ASVspoof lineage) — chosen by bake-off with REAL human clips (JFK,
+# LibriSpeech) + synthetic probes; see scripts/test_models.py and
+# model-compare-results.json. Downloads on first use; PyTorch already present.
+transformers>=4.44.0

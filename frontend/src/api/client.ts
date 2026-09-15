@@ -4,7 +4,30 @@
  * local backend used throughout the demo.
  */
 
-const API_BASE: string = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+// Backend URL resolution order:
+//   1. /voiceguard-config.json ("apiUrl") — lets a deployed UI (e.g. Netlify)
+//      point at a new backend WITHOUT rebuilding.
+//   2. VITE_API_URL build-time environment variable.
+//   3. Local default (127.0.0.1:8000).
+let basePromise: Promise<string> | null = null;
+
+function resolveApiBase(): Promise<string> {
+  if (!basePromise) {
+    basePromise = (async () => {
+      try {
+        const res = await fetch("/voiceguard-config.json", { cache: "no-store" });
+        if (res.ok) {
+          const cfg = (await res.json()) as { apiUrl?: string };
+          if (cfg?.apiUrl) return cfg.apiUrl.replace(/\/+$/, "");
+        }
+      } catch {
+        /* no config file — fall through */
+      }
+      return (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000";
+    })();
+  }
+  return basePromise;
+}
 
 export interface HealthResponse {
   status: string;
@@ -95,7 +118,8 @@ export interface AnalyzeResponse {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, init);
+  const apiBase = await resolveApiBase();
+  const res = await fetch(`${apiBase}${path}`, init);
   if (!res.ok) {
     let detail = `${res.status}`;
     try {
