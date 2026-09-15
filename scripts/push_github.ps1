@@ -4,10 +4,10 @@
 # approve it once and the credentials are cached for future pushes.
 param([Parameter(Mandatory = $true)][string]$RepoUrl)
 
-$ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
-git remote remove origin 2>$null
+# Replace any existing origin (tolerates a fresh repo with none configured)
+if (git remote | Select-String -Quiet "^origin$") { git remote remove origin }
 git remote add origin $RepoUrl
 git push -u origin main
 
