@@ -1,0 +1,14 @@
+# Netlify config (repo root — this is where Netlify looks for it).
+# Deploys the React UI; the AI backend runs elsewhere (see DEPLOY.md) and its
+# URL is embedded at runtime via frontend/public/voiceguard-config.json.
+
+[build]
+  base = "frontend"        # all paths below are relative to this
+  command = "npm run build"
+  publish = "dist"         # -> served as the site root (contains index.html)
+
+# SPA fallback (harmless for this single-view app, standard for React sites)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
