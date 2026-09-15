@@ -1,11 +1,9 @@
-/** Phase 2 — placeholder result view.
- * Honest by design: no scores are invented. Phase 8 replaces this with the
- * full judge-facing dashboard (RiskGauge, SignalBreakdown, transcript).
- */
+/** Result screen — gauge, signals, transcript, flagged phrases, decision. */
 
 import type { AnalyzeResponse } from "../api/client";
 import RiskGauge from "../components/RiskGauge";
 import SignalBreakdown from "../components/SignalBreakdown";
+import { Card, SecondaryButton, SectionLabel } from "../components/ui";
 
 interface ResultPageProps {
   result: AnalyzeResponse | null;
@@ -16,13 +14,10 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
   if (!result) {
     return (
       <div className="mx-auto max-w-3xl">
-        <p className="text-sm text-slate-400">No analysis yet — record or upload a clip first.</p>
-        <button
-          onClick={onNewAnalysis}
-          className="mt-4 rounded-md border border-ink-600 bg-ink-800 px-4 py-2 font-mono text-xs text-slate-300 hover:text-emerald-300"
-        >
+        <p className="text-sm text-muted">No analysis yet — record or upload a clip first.</p>
+        <SecondaryButton className="mt-4" onClick={onNewAnalysis}>
           Go to analyzer
-        </button>
+        </SecondaryButton>
       </div>
     );
   }
@@ -31,79 +26,70 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <section className="flex items-start justify-between">
+      <section className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">Analysis result</h1>
-          <p className="mt-1 font-mono text-xs text-slate-500">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Analysis result</h1>
+          <p className="mt-1 font-mono text-xs text-faint">
             analysis #{result.analysis_id ?? "?"} · {result.audio.filename}
             {duration !== null ? ` · ${duration.toFixed(1)} s` : ""}
             {result.cached ? " · ⚡ instant (cached — identical audio)" : ""}
           </p>
         </div>
-        <button
-          onClick={onNewAnalysis}
-          className="rounded-md border border-ink-600 bg-ink-800 px-4 py-2 font-mono text-xs text-slate-300 transition-colors hover:text-emerald-300"
-        >
-          Analyze another clip
-        </button>
+        <SecondaryButton onClick={onNewAnalysis}>Analyze another clip</SecondaryButton>
       </section>
-
-      <p className="rounded-lg bg-amber-400/10 px-4 py-3 text-xs leading-relaxed text-amber-300 ring-1 ring-amber-400/20">
-        Placeholder pipeline response — audio intake works end-to-end. The three ML signals
-        (speech-to-text, speaker match, AI-voice risk, behavior analysis) are wired in Phases 3-7,
-        so no scores are computed yet.
-      </p>
 
       <RiskGauge value={result.overall_risk_pct} decision={result.decision} components={result.risk_components} />
 
       <SignalBreakdown result={result} />
 
-      <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Transcript</p>
-        <p className={`mt-3 border-l-2 pl-4 text-base leading-relaxed ${result.transcript ? "border-emerald-400/40 text-slate-200" : "border-ink-600 text-slate-500"}`}>
-          {result.transcript ?? "Available from Phase 3 (faster-whisper)."}
+      <Card className="p-5 sm:p-6">
+        <SectionLabel>Transcript</SectionLabel>
+        <p
+          className={`mt-3 border-l-2 pl-4 text-base leading-relaxed ${
+            result.transcript ? "border-accent/40 text-fg" : "border-line text-faint"
+          }`}
+        >
+          {result.transcript ?? "No speech detected in this clip."}
         </p>
         {result.language && (
-          <p className="mt-3 font-mono text-[11px] text-slate-600">detected language: {result.language} · faster-whisper base</p>
+          <p className="mt-3 font-mono text-[11px] text-faint">language: {result.language} · faster-whisper</p>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Reasons</p>
+      <Card className="p-5 sm:p-6">
+        <SectionLabel>Reasons</SectionLabel>
         <ul className="mt-3 space-y-2">
           {result.reasons.map((r) => (
-            <li key={r} className="flex gap-2 text-sm text-slate-300">
-              <span className="text-emerald-400">·</span>
-              {r}
+            <li key={r} className="flex gap-2 text-sm text-muted">
+              <span className="mt-0.5 text-accent">·</span>
+              <span>{r}</span>
             </li>
           ))}
         </ul>
-      </section>
+      </Card>
 
       {result.behavior && result.behavior.matched.length > 0 && (
-        <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">
-            Flagged phrases — suspicious-request analysis
-          </p>
+        <Card className="p-5 sm:p-6">
+          <SectionLabel>Flagged phrases — suspicious-request analysis</SectionLabel>
           <ul className="mt-4 space-y-3">
             {result.behavior.matched.map((m, i) => (
-              <li key={`${m.category}-${i}`} className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3">
+              <li key={`${m.category}-${i}`} className="rounded-lg border border-warn/25 bg-warn/5 px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-amber-300">{m.category}</span>
-                  <span className="font-mono text-xs text-slate-200">“{m.phrase}”</span>
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-warn">{m.category}</span>
+                  <span className="font-mono text-xs text-fg">“{m.phrase}”</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">…{m.context}…</p>
+                <p className="mt-1 text-xs text-muted">…{m.context}…</p>
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       )}
 
-      <details className="rounded-xl border border-ink-700 bg-ink-900/50 p-4">
-        <summary className="cursor-pointer font-mono text-xs text-slate-500 hover:text-slate-300">
+      <details className="rounded-xl border border-line bg-surface p-4">
+        <summary className="cursor-pointer font-mono text-xs text-muted transition-colors hover:text-fg">
           Raw API response
         </summary>
-        <pre className="mt-3 overflow-x-auto font-mono text-[11px] leading-relaxed text-slate-500">
+        <pre className="mt-3 overflow-x-auto font-mono text-[11px] leading-relaxed text-faint">
           {JSON.stringify(result, null, 2)}
         </pre>
       </details>

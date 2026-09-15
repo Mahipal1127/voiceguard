@@ -84,7 +84,7 @@ export default function AudioRecorder({ onRecorded, onDiscard }: AudioRecorderPr
     const w = canvas.width;
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = "rgba(148,163,184,0.2)";
+    ctx.strokeStyle = "rgba(128,128,128,0.25)";
     ctx.beginPath();
     ctx.moveTo(0, h / 2);
     ctx.lineTo(w, h / 2);
@@ -93,7 +93,7 @@ export default function AudioRecorder({ onRecorded, onDiscard }: AudioRecorderPr
     const bars = 64;
     const step = Math.floor(data.length / bars);
     const bw = w / bars;
-    ctx.fillStyle = "rgba(52,211,153,0.9)";
+    ctx.fillStyle = "rgb(16 185 129 / 0.9)";
     for (let i = 0; i < bars; i++) {
       let peak = 0;
       for (let j = 0; j < step; j++) {
@@ -181,12 +181,12 @@ export default function AudioRecorder({ onRecorded, onDiscard }: AudioRecorderPr
   }, [onDiscard]);
 
   return (
-    <div className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
+    <div className="rounded-xl border border-line bg-surface p-5 sm:p-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Live microphone</h3>
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-faint">Live microphone</p>
         {state === "recording" && (
-          <span className="flex items-center gap-2 font-mono text-xs text-rose-300">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-rose-500" /> REC
+          <span className="flex items-center gap-2 font-mono text-xs text-stop">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-stop" /> REC
           </span>
         )}
       </div>
@@ -195,25 +195,30 @@ export default function AudioRecorder({ onRecorded, onDiscard }: AudioRecorderPr
         <div className="mt-6 flex flex-col items-center gap-4">
           <button
             onClick={() => void start()}
-            className="rounded-lg bg-emerald-400/10 px-6 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/30 transition-colors hover:bg-emerald-400/20"
+            className="w-full rounded-lg bg-accent/10 px-6 py-3 text-sm font-semibold text-accent ring-1 ring-accent/25 transition hover:bg-accent/15 sm:w-auto"
           >
             ● Start recording
           </button>
-          <p className="font-mono text-[11px] text-slate-500">10-30 s recommended · auto-stops at 30 s</p>
+          <p className="font-mono text-[11px] text-faint">10-30 s recommended · auto-stops at 30 s</p>
         </div>
       )}
 
       {state === "recording" && (
         <div className="mt-5 space-y-4">
-          <p className="text-center font-mono text-3xl text-slate-100">
+          <p className="text-center font-mono text-3xl text-fg">
             {formatMs(elapsedMs)}
-            <span className="text-sm text-slate-500"> / 00:30.0</span>
+            <span className="text-sm text-faint"> / 00:30.0</span>
           </p>
-          <canvas ref={canvasRef} width={640} height={80} className="h-20 w-full rounded-lg border border-ink-700 bg-ink-950" />
+          <canvas
+            ref={canvasRef}
+            width={640}
+            height={80}
+            className="h-20 w-full rounded-lg border border-line bg-surface2"
+          />
           <div className="flex justify-center">
             <button
               onClick={stop}
-              className="rounded-lg bg-rose-500/10 px-6 py-2.5 text-sm font-semibold text-rose-300 ring-1 ring-rose-400/30 transition-colors hover:bg-rose-500/20"
+              className="rounded-lg bg-stop/10 px-6 py-2.5 text-sm font-semibold text-stop ring-1 ring-stop/25 transition hover:bg-stop/15"
             >
               ■ Stop
             </button>
@@ -227,7 +232,7 @@ export default function AudioRecorder({ onRecorded, onDiscard }: AudioRecorderPr
           <div className="flex justify-end">
             <button
               onClick={discard}
-              className="rounded-md border border-ink-600 px-3 py-1.5 font-mono text-xs text-slate-400 transition-colors hover:text-slate-200"
+              className="rounded-md border border-line2 px-3 py-1.5 font-mono text-xs text-muted transition-colors hover:text-fg"
             >
               Discard &amp; re-record
             </button>
@@ -235,7 +240,7 @@ export default function AudioRecorder({ onRecorded, onDiscard }: AudioRecorderPr
         </div>
       )}
 
-      {micError && <p className="mt-4 rounded-md bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{micError}</p>}
+      {micError && <p className="mt-4 rounded-lg bg-stop/10 px-3 py-2 text-xs text-stop">{micError}</p>}
     </div>
   );
 }

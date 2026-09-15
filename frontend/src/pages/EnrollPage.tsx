@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AudioRecorder from "../components/AudioRecorder";
 import { enrollVoice, listEnrolled, type EnrolledVoice, type EnrollResponse } from "../api/client";
-import { Banner, PrimaryButton, SectionLabel } from "../components/ui";
+import { Banner, Card, PrimaryButton, SectionLabel } from "../components/ui";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_EXT = [".wav", ".mp3", ".webm", ".ogg", ".m4a", ".flac"];
@@ -68,48 +68,62 @@ export default function EnrollPage() {
   }, [name, file, busy, refresh]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">Enroll a reference voice</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Enroll a reference voice</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
           Register the voice of a person you trust (10-30 s of natural speech). Later analyses are
           compared against it — a high match means the caller sounds like this person.
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <SectionLabel>Display name</SectionLabel>
+      <Card className="p-5 sm:p-6">
+        <SectionLabel>1 · Display name</SectionLabel>
         <input
-          id="enroll-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={80}
           placeholder="e.g. Mom, Dad, Manager"
-          className="mt-3 w-full rounded-lg border border-ink-600 bg-ink-950 px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:border-emerald-400/40 focus:outline-none"
+          className="mt-3 w-full rounded-lg border border-line bg-surface2/50 px-4 py-2.5 text-sm text-fg placeholder:text-faint focus:border-accent/50 focus:outline-none"
         />
+      </Card>
+
+      <section>
+        <SectionLabel>2 · Voice sample</SectionLabel>
+        <div className="mt-3 space-y-4">
+          <AudioRecorder onRecorded={setFile} onDiscard={() => setFile(null)} />
+
+          <Card className="p-5 text-center">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="audio/*,.wav,.mp3,.webm,.ogg,.m4a,.flac"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) acceptFile(f);
+                e.target.value = "";
+              }}
+            />
+            <p className="text-sm text-muted">
+              {file ? (
+                <>
+                  <span className="font-medium text-fg">{file.name}</span>
+                  <span className="ml-2 font-mono text-xs text-faint">{formatBytes(file.size)}</span>
+                </>
+              ) : (
+                "…or upload an audio file"
+              )}
+            </p>
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="mt-3 rounded-lg border border-line2 px-4 py-1.5 font-mono text-xs text-muted transition hover:border-accent/40 hover:text-fg"
+            >
+              {file ? "Choose another file" : "Browse files"}
+            </button>
+          </Card>
+        </div>
       </section>
-
-      <AudioRecorder onRecorded={setFile} onDiscard={() => setFile(null)} />
-
-      <div className="rounded-xl border border-dashed border-ink-600 bg-ink-900/40 p-5 text-center">
-        <input
-          ref={inputRef}
-          type="file"
-          accept="audio/*,.wav,.mp3,.webm,.ogg,.m4a,.flac"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) acceptFile(f);
-            e.target.value = "";
-          }}
-        />
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="rounded-md border border-ink-600 bg-ink-800 px-4 py-1.5 font-mono text-xs text-slate-300 transition-colors hover:border-emerald-400/40 hover:text-emerald-300"
-        >
-          {file ? `Selected: ${file.name} (${formatBytes(file.size)}) — change` : "…or upload an audio file"}
-        </button>
-      </div>
 
       {warning && <Banner tone="warning">{warning}</Banner>}
       {error && <Banner tone="error">{error}</Banner>}
@@ -119,24 +133,25 @@ export default function EnrollPage() {
         </Banner>
       )}
 
-      <div className="flex justify-end">
-        <PrimaryButton onClick={() => void enroll()} disabled={!name.trim() || !file || busy}>
-          {busy ? "Extracting embedding…" : "Enroll reference voice"}
-        </PrimaryButton>
-      </div>
+      <PrimaryButton className="!w-full" onClick={() => void enroll()} disabled={!name.trim() || !file || busy}>
+        {busy ? "Extracting embedding…" : "3 · Enroll reference voice"}
+      </PrimaryButton>
 
       {enrolled.length > 0 && (
-        <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Enrolled voices</p>
+        <Card className="p-5 sm:p-6">
+          <SectionLabel>Enrolled voices</SectionLabel>
           <ul className="mt-4 space-y-2">
             {enrolled.map((v) => (
-              <li key={v.id} className="flex items-center justify-between border-b border-ink-700 pb-2 last:border-0 last:pb-0">
-                <span className="text-sm text-slate-300">{v.name}</span>
-                <span className="font-mono text-xs text-slate-600">{v.created_at}</span>
+              <li
+                key={v.id}
+                className="flex items-center justify-between border-b border-line pb-2 last:border-0 last:pb-0"
+              >
+                <span className="text-sm text-fg">{v.name}</span>
+                <span className="font-mono text-xs text-faint">{v.created_at}</span>
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       )}
     </div>
   );

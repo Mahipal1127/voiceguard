@@ -1,15 +1,13 @@
-/** Shared UI primitives — one consistent visual language across pages. */
+/** Shared UI primitives — one visual language across both themes. */
 
 import type { ReactNode } from "react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-xl border border-ink-600 bg-ink-900/70 ${className}`}>{children}</div>
-  );
+  return <div className={`rounded-xl border border-line bg-surface ${className}`}>{children}</div>;
 }
 
 export function SectionLabel({ children }: { children: ReactNode }) {
-  return <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">{children}</p>;
+  return <p className="font-mono text-xs uppercase tracking-[0.25em] text-faint">{children}</p>;
 }
 
 export function PrimaryButton({
@@ -27,7 +25,7 @@ export function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg bg-emerald-400/10 px-6 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/30 transition-colors hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      className={`w-full rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-accent-contrast shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto ${className}`}
     >
       {children}
     </button>
@@ -49,7 +47,7 @@ export function SecondaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg border border-ink-600 bg-ink-800 px-5 py-2.5 font-mono text-xs text-slate-300 transition-colors hover:border-emerald-400/40 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      className={`w-full rounded-lg border border-line2 bg-surface px-5 py-2.5 font-mono text-xs text-muted transition hover:border-accent/40 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto ${className}`}
     >
       {children}
     </button>
@@ -57,9 +55,9 @@ export function SecondaryButton({
 }
 
 const TONES = {
-  error: "bg-rose-500/10 text-rose-300 ring-rose-400/20",
-  warning: "bg-amber-400/10 text-amber-300 ring-amber-400/20",
-  success: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20",
+  error: "bg-stop/10 text-stop ring-stop/25",
+  warning: "bg-warn/10 text-warn ring-warn/25",
+  success: "bg-ok/10 text-ok ring-ok/25",
 } as const;
 
 export function Banner({ tone, children }: { tone: keyof typeof TONES; children: ReactNode }) {

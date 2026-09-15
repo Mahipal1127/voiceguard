@@ -30,9 +30,9 @@ function zoneArc(from: number, to: number): string {
 }
 
 const ZONES: { from: number; to: number; color: string; label: string }[] = [
-  { from: 0, to: 29, color: "#34D399", label: "ALLOW" },
-  { from: 30, to: 59, color: "#FBBF24", label: "WARN" },
-  { from: 60, to: 79, color: "#FB923C", label: "VERIFY" },
+  { from: 0, to: 29, color: "#10B981", label: "ALLOW" },
+  { from: 30, to: 59, color: "#F59E0B", label: "WARN" },
+  { from: 60, to: 79, color: "#F97316", label: "VERIFY" },
   { from: 80, to: 100, color: "#F43F5E", label: "BLOCK" },
 ];
 
@@ -41,9 +41,9 @@ export default function RiskGauge({ value, decision, components }: RiskGaugeProp
   const needle = polar(angleFor(shown), RADIUS - STROKE - 8);
 
   return (
-    <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
+    <section className="rounded-xl border border-line bg-surface p-5 sm:p-6">
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-        <svg viewBox="0 0 200 118" className="w-64 shrink-0" role="img" aria-label={`Overall risk ${shown} of 100, decision ${decision}`}>
+        <svg viewBox="0 0 200 118" className="w-60 shrink-0 text-fg sm:w-64" role="img" aria-label={`Overall risk ${shown} of 100, decision ${decision}`}>
           {ZONES.map((z) => (
             <path
               key={z.label}
@@ -52,49 +52,68 @@ export default function RiskGauge({ value, decision, components }: RiskGaugeProp
               strokeWidth={shown >= z.from && shown <= z.to ? STROKE + 3 : STROKE}
               fill="none"
               strokeLinecap="butt"
-              opacity={shown >= z.from && shown <= z.to ? 1 : 0.55}
+              opacity={shown >= z.from && shown <= z.to ? 1 : 0.45}
             />
           ))}
-          {/* threshold ticks */}
           {[0, 30, 60, 80, 100].map((t) => {
             const p1 = polar(angleFor(t), RADIUS + STROKE / 2 + 2);
             const p2 = polar(angleFor(t), RADIUS + STROKE / 2 + 7);
-            return <line key={t} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#64748B" strokeWidth="2" />;
+            return (
+              <line
+                key={t}
+                x1={p1.x}
+                y1={p1.y}
+                x2={p2.x}
+                y2={p2.y}
+                stroke="currentColor"
+                strokeWidth="2"
+                opacity="0.55"
+              />
+            );
           })}
-          {/* needle */}
-          <line x1={CENTER} y1={CENTER} x2={needle.x} y2={needle.y} stroke="#E2E8F0" strokeWidth="3" strokeLinecap="round" />
-          <circle cx={CENTER} cy={CENTER} r="6" fill="#0B1210" stroke="#E2E8F0" strokeWidth="2" />
-          <text x={CENTER} y={CENTER - 22} textAnchor="middle" className="fill-slate-100" fontSize="26" fontWeight="700" fontFamily="ui-monospace, monospace">
+          <line
+            x1={CENTER}
+            y1={CENTER}
+            x2={needle.x}
+            y2={needle.y}
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <circle cx={CENTER} cy={CENTER} r="6" className="fill-surface" stroke="currentColor" strokeWidth="2" />
+          <text x={CENTER} y={CENTER - 22} textAnchor="middle" className="fill-current" fontSize="26" fontWeight="700" fontFamily="ui-monospace, monospace">
             {value === null ? "—" : Math.round(shown)}
           </text>
-          <text x="14" y="116" fontSize="9" fill="#64748B" fontFamily="ui-monospace, monospace">0</text>
-          <text x="182" y="116" fontSize="9" fill="#64748B" fontFamily="ui-monospace, monospace">100</text>
+          <text x="14" y="116" fontSize="9" className="fill-faint" fontFamily="ui-monospace, monospace">0</text>
+          <text x="182" y="116" fontSize="9" className="fill-faint" fontFamily="ui-monospace, monospace">100</text>
         </svg>
 
-        <div className="min-w-0 flex-1">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Decision</p>
+        <div className="min-w-0 flex-1 text-center sm:text-left">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-faint">Decision</p>
           <p
-            className={`mt-2 inline-block rounded-md px-6 py-2.5 font-mono text-3xl font-bold tracking-widest ring-1 ${
+            className={`mt-2 inline-block rounded-md px-6 py-2.5 font-mono text-2xl font-bold tracking-widest ring-1 sm:text-3xl ${
               decision === "ALLOW"
-                ? "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30"
+                ? "bg-ok/10 text-ok ring-ok/30"
                 : decision === "WARN"
-                  ? "bg-amber-400/10 text-amber-300 ring-amber-400/30"
+                  ? "bg-warn/10 text-warn ring-warn/30"
                   : decision === "VERIFY"
-                    ? "bg-orange-400/10 text-orange-300 ring-orange-400/30"
+                    ? "bg-check/10 text-check ring-check/30"
                     : decision === "BLOCK"
-                      ? "bg-rose-500/10 text-rose-300 ring-rose-400/30"
-                      : "bg-slate-500/10 text-slate-300 ring-slate-400/20"
+                      ? "bg-stop/10 text-stop ring-stop/30"
+                      : "bg-surface2 text-muted ring-line"
             }`}
           >
             {decision}
           </p>
           {components && (
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-500">
-              score = base {components.base} (speaker) + AI-voice {components.ai_term} (weight 40) + behavior {components.behavior_term} (weight 35)
+            <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">
+              score = base {components.base} (speaker) + AI-voice {components.ai_term} (weight 40) +
+              behavior {components.behavior_term} (weight 35)
             </p>
           )}
-          <p className="mt-1 font-mono text-[11px] text-slate-600">
-            thresholds fixed — 0-29 {ZONES[0].label} · 30-59 {ZONES[1].label} · 60-79 {ZONES[2].label} · 80-100 {ZONES[3].label}
+          <p className="mt-1 font-mono text-[11px] text-faint">
+            thresholds fixed — 0-29 {ZONES[0].label} · 30-59 {ZONES[1].label} · 60-79 {ZONES[2].label} · 80-100{" "}
+            {ZONES[3].label}
           </p>
         </div>
       </div>

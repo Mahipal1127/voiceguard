@@ -1,4 +1,4 @@
-/** Phase tracker shown on the Phase 1 placeholder homepage. */
+/** Build/feature status list. */
 
 const ROADMAP: { id: string; title: string; done: boolean }[] = [
   { id: "01", title: "Scaffolding — FastAPI + Vite / React / TS / Tailwind", done: true },
@@ -15,24 +15,19 @@ const ROADMAP: { id: string; title: string; done: boolean }[] = [
 
 export default function BuildRoadmap() {
   return (
-    <section>
-      <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-slate-500">
-        Build roadmap
-      </h2>
-      <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {ROADMAP.map((item) => (
-          <li
-            key={item.id}
-            className="flex items-center gap-3 rounded-lg border border-ink-700 bg-ink-900/50 px-4 py-3"
-          >
-            <span className="font-mono text-xs text-slate-600">{item.id}</span>
-            <span className="flex-1 text-sm text-slate-300">{item.title}</span>
-            <span className={`font-mono text-xs ${item.done ? "text-emerald-400" : "text-slate-600"}`}>
-              {item.done ? "DONE" : "QUEUED"}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {ROADMAP.map((item) => (
+        <li
+          key={item.id}
+          className="flex items-center gap-3 rounded-lg border border-line bg-surface2/50 px-4 py-3"
+        >
+          <span className="font-mono text-xs text-faint">{item.id}</span>
+          <span className="flex-1 text-sm text-fg">{item.title}</span>
+          <span className={`font-mono text-xs ${item.done ? "text-ok" : "text-faint"}`}>
+            {item.done ? "DONE" : "QUEUED"}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -3,11 +3,12 @@
  */
 
 import type { AnalyzeResponse } from "../api/client";
+import { Card, SectionLabel } from "./ui";
 
 const BAR_COLOR: Record<string, string> = {
-  "Speaker match": "bg-emerald-400",
-  "AI-voice risk": "bg-rose-500",
-  "Behavior risk": "bg-amber-400",
+  "Speaker match": "bg-ok",
+  "AI-voice risk": "bg-stop",
+  "Behavior risk": "bg-warn",
 };
 
 export default function SignalBreakdown({ result }: { result: AnalyzeResponse }) {
@@ -38,25 +39,28 @@ export default function SignalBreakdown({ result }: { result: AnalyzeResponse })
   ];
 
   return (
-    <section className="rounded-xl border border-ink-600 bg-ink-900/70 p-6">
-      <p className="font-mono text-xs uppercase tracking-[0.25em] text-slate-500">Signal breakdown</p>
+    <Card className="p-5 sm:p-6">
+      <SectionLabel>Signal breakdown</SectionLabel>
       <ul className="mt-4 space-y-4">
         {rows.map((r) => (
           <li key={r.label}>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-300">{r.label}</span>
-              <span className="font-mono text-sm text-slate-200">{r.value === null ? "—" : `${r.value.toFixed(0)}%`}</span>
+              <span className="text-sm text-fg">{r.label}</span>
+              <span className="font-mono text-sm">{r.value === null ? "—" : `${r.value.toFixed(0)}%`}</span>
             </div>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink-700">
-              <div className={`h-full rounded-full ${BAR_COLOR[r.label] ?? "bg-slate-400"}`} style={{ width: `${r.value ?? 0}%` }} />
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface2">
+              <div
+                className={`h-full rounded-full ${BAR_COLOR[r.label] ?? "bg-muted"}`}
+                style={{ width: `${r.value ?? 0}%` }}
+              />
             </div>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
               {r.note}
-              {r.detail ? <span className="text-slate-400"> · {r.detail}</span> : null}
+              {r.detail ? <span className="text-muted"> · {r.detail}</span> : null}
             </p>
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }

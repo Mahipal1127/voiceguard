@@ -2,17 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ─────────────────────────────────────────────────────────
+ * Light is the default. Toggling the `dark` class on <html> flips every
+ * token; components never reference a theme directly. Values are
+ * space-separated RGB triplets so Tailwind can apply alpha (bg-accent/10).
+ * ────────────────────────────────────────────────────────────────────────*/
+:root {
+  color-scheme: light;
+  --c-bg: 245 248 247; /* #F5F8F7 */
+  --c-surface: 255 255 255;
+  --c-surface-2: 238 242 240;
+  --c-border: 224 231 228;
+  --c-border-strong: 203 213 209;
+  --c-text: 15 27 23; /* #0F1B17 */
+  --c-muted: 85 101 95;
+  --c-faint: 138 154 148;
+  --c-accent: 5 150 105; /* emerald-600 */
+  --c-accent-contrast: 255 255 255;
+  --c-ok: 5 150 105; /* ALLOW */
+  --c-warn: 180 83 9; /* WARN  (amber-700, readable on light) */
+  --c-check: 234 88 12; /* VERIFY (orange-600) */
+  --c-stop: 225 29 72; /* BLOCK (rose-600) */
+}
+
+.dark {
+  color-scheme: dark;
+  --c-bg: 7 11 10;
+  --c-surface: 11 18 16;
+  --c-surface-2: 18 27 24;
+  --c-border: 26 38 34;
+  --c-border-strong: 42 58 52;
+  --c-text: 226 232 230;
+  --c-muted: 148 163 160;
+  --c-faint: 100 118 112;
+  --c-accent: 52 211 153; /* emerald-400 */
+  --c-accent-contrast: 6 35 27;
+  --c-ok: 52 211 153;
+  --c-warn: 251 191 36;
+  --c-check: 251 146 60;
+  --c-stop: 244 63 94;
+}
+
 @layer base {
   html {
-    @apply bg-ink-950 text-slate-200 antialiased;
+    @apply bg-bg text-fg;
   }
 
   body {
-    @apply min-h-screen;
+    @apply min-h-screen font-sans antialiased;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  ::selection {
+    background: rgb(var(--c-accent) / 0.2);
   }
 }
 
 @layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(rgb(var(--c-border) / 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--c-border) / 0.4) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
   .animate-fade-up {
     animation: fade-up 0.35s ease-out both;
   }

@@ -36,7 +36,7 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
   const [stageIdx, setStageIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
--
+
   useEffect(() => {
     if (!busy) {
       setStageIdx(0);
@@ -88,7 +88,7 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
       const msg = err instanceof Error ? err.message : "Analysis request failed.";
       setError(
         /failed to fetch|networkerror|load failed/i.test(msg)
-          ? "Cannot reach the backend. Start it with: powershell -File scripts\\start_all.ps1 (then retry — the first analysis after a restart loads the models)."
+          ? "Cannot reach the backend — start it with scripts\\start_all.ps1, or check the deployed backend URL."
           : msg,
       );
     } finally {
@@ -97,10 +97,10 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
   }, [file, busy, onAnalyzed]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">Analyze a voice clip</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Analyze a voice clip</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
           Record 10-30 seconds with your microphone or upload a clip. You'll get the transcript,
           three signal scores and an ALLOW / WARN / VERIFY / BLOCK decision.
         </p>
@@ -109,7 +109,7 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
       <div className="grid gap-4 lg:grid-cols-2">
         <AudioRecorder onRecorded={setFile} onDiscard={() => setFile(null)} />
 
-        <Card className="flex flex-col p-6">
+        <Card className="flex flex-col p-5 sm:p-6">
           <SectionLabel>Upload a file</SectionLabel>
           <div
             onDragOver={(e) => {
@@ -119,17 +119,17 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
             className={`mt-4 flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center transition-colors ${
-              dragOver ? "border-emerald-400/50 bg-emerald-400/5" : "border-ink-600 bg-ink-950/40"
+              dragOver ? "border-accent/60 bg-accent/5" : "border-line2 bg-surface2/50"
             }`}
           >
-            <svg viewBox="0 0 24 24" className="h-8 w-8 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <svg viewBox="0 0 24 24" className="h-8 w-8 text-faint" fill="none" stroke="currentColor" strokeWidth="1.6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" />
             </svg>
-            <p className="mt-3 text-sm text-slate-400">
+            <p className="mt-3 text-sm text-muted">
               {file ? (
                 <>
-                  <span className="text-slate-200">{file.name}</span>
-                  <span className="ml-2 font-mono text-xs text-slate-500">{formatBytes(file.size)}</span>
+                  <span className="font-medium text-fg">{file.name}</span>
+                  <span className="ml-2 font-mono text-xs text-faint">{formatBytes(file.size)}</span>
                 </>
               ) : (
                 "Drag a .wav / .mp3 / .webm clip here"
@@ -157,14 +157,14 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
       {error && <Banner tone="error">{error}</Banner>}
 
       {busy ? (
-        <Card className="p-6">
+        <Card className="p-5 sm:p-6">
           <div className="flex items-center gap-3">
-            <Spinner className="h-6 w-6 text-emerald-300" />
+            <Spinner className="h-6 w-6 text-accent" />
             <div>
-              <p className="font-mono text-sm text-emerald-300">
-                {STAGES[stageIdx]} <span className="text-slate-400">{elapsed.toFixed(1)} s</span>
+              <p className="font-mono text-sm text-accent">
+                {STAGES[stageIdx]} <span className="text-muted">{elapsed.toFixed(1)} s</span>
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-500">
+              <p className="mt-0.5 text-[11px] text-faint">
                 {elapsed > 25
                   ? "still working — models reload after a backend restart, so the first run can take up to a minute"
                   : "the full pipeline runs server-side in a single request — stages are a guide, not steps"}
@@ -173,7 +173,7 @@ export default function RecordPage({ onAnalyzed }: RecordPageProps) {
           </div>
           <div className="mt-4 flex gap-1">
             {STAGES.map((_, i) => (
-              <div key={i} className={`h-1 flex-1 rounded-full ${i <= stageIdx ? "bg-emerald-400/60" : "bg-ink-700"}`} />
+              <div key={i} className={`h-1 flex-1 rounded-full ${i <= stageIdx ? "bg-accent/60" : "bg-line"}`} />
             ))}
           </div>
         </Card>
