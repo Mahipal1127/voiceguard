@@ -8,7 +8,7 @@ models, ffmpeg and a local SQLite file. So the pattern is:
 Teammate's browser ──HTTPS──▶ Netlify (UI)  ──HTTPS──▶  backend (must be public too)
 ```
 
-Two free ways to make the backend reachable. Both need **zero paid services**.
+Three deployment options — two free, one with usage billing:
 
 ---
 
@@ -48,7 +48,37 @@ No-GitHub alternative: run `npm run build` in `frontend/`, then drag the
 
 ---
 
-## Path B — backend as a free Hugging Face Space (always-on, 24/7)
+## Path B — backend on Railway (GitHub-connected, auto-deploys on push)
+
+Railway note: no permanent free tier. **Trial = $5 one-time credit** (no card);
+after that Hobby is $5/mo **+ usage**. This backend holds ~2.5 GB of models, and
+Railway bills RAM by the hour — **set a usage limit** (Service → Settings →
+Limits) before deploying, and expect the trial to last days, not months. For a
+genuinely free always-on backend use Path C.
+
+1. **Add the deploy files** (already committed): `backend/Dockerfile` exists and
+   `backend/db.py` accepts a `VOICEGUARD_DB_PATH` env override for volumes.
+2. **railway.app** → sign in with GitHub → **New Project → Deploy from GitHub repo**
+   → select `Mahipal1127/voiceguard`.
+3. Service → **Settings**:
+   - **Root Directory** = `backend`  ← important (the Dockerfile lives there)
+   - **Healthcheck Path** = `/health`
+4. **Variables** → add:
+   - `ALLOWED_ORIGINS = https://YOUR-SITE.netlify.app`
+   - (optional, with a Volume attached at `/data`) `VOICEGUARD_DB_PATH = /data/voiceguard.db`
+5. **Settings → Networking → Generate Domain** → e.g.
+   `https://voiceguard-backend-production.up.railway.app` (HTTPS included).
+   Test: append `/health`.
+6. **Netlify**: edit `frontend/public/voiceguard-config.json` →
+   `"apiUrl": "https://voiceguard-backend-production.up.railway.app"` → commit +
+   push. Railway auto-redeploys the backend on every push to `backend/`.
+
+Bonus: because it's GitHub-connected, any `git push` that touches the backend
+rebuilds and redeploys it automatically — no manual steps.
+
+---
+
+## Path C — backend as a free Hugging Face Space (always-on, 24/7)
 
 Free tier: 16 GB RAM, 2 vCPU — comfortably runs all three models. Spaces sleep
 after 48 h of zero traffic and wake on the next visit (first wake: models
@@ -79,5 +109,5 @@ which is actually what you want for testing).
 
 - **Judges demo (same room):** neither — run locally per `DEMO_SCRIPT.md`
   (zero network risk, fastest).
-- **Team testing before the event:** Path A today; upgrade to Path B when you
-  want it testable around the clock.
+- **Team testing before the event:** Path B (Railway, simplest) or Path C
+  (HF Space, free around the clock).

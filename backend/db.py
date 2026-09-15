@@ -7,12 +7,18 @@ changing the connection helpers in this file, not the rest of the app.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-DB_PATH = Path(__file__).resolve().parent / "voiceguard.db"
+# Override with VOICEGUARD_DB_PATH when the DB lives on a mounted volume
+# (e.g. Railway/HF persistent storage) — otherwise it sits next to the code.
+DB_PATH = Path(
+    os.environ.get("VOICEGUARD_DB_PATH")
+    or (Path(__file__).resolve().parent / "voiceguard.db")
+)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS enrolled_voices (
