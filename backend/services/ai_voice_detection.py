@@ -137,9 +137,9 @@ def detect_ai_voice(audio_path: str) -> dict:
             wav16.unlink(missing_ok=True)
 
     heur = heuristic_estimate(audio.numpy())
-    # Bound CPU latency: classification runs on at most the first 12 s —
+    # Bound CPU latency: classification runs on at most the first 8 s —
     # plenty for a deepfake decision and keeps 30 s uploads fast.
-    audio_for_model = audio[: 16000 * 12]
+    audio_for_model = audio[: 16000 * 8]
     result = {
         "model_risk_pct": None,
         "heuristic_risk_pct": heur["heuristic_risk_pct"],

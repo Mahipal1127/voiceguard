@@ -1,0 +1,11 @@
+# Build context hygiene — keeps the image small and builds fast.
+# NOTE: models_store/ is INTENTIONALLY included (baked models = no HF
+# downloads at container startup).
+.venv/
+__pycache__/
+**/__pycache__/
+tmp_uploads/
+enrolled_voices/
+voiceguard.db
+*.log
+.env

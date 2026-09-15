@@ -19,6 +19,9 @@ RUN python -m pip install --no-cache-dir torch --index-url https://download.pyto
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Bake the model weights into the image (no HF downloads at startup).
+COPY models_store /app/models_store
+
 COPY . .
 
 # Railway injects PORT; 8000 keeps local docker runs identical.

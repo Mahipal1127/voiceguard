@@ -37,6 +37,7 @@ export default function ResultPage({ result, onNewAnalysis }: ResultPageProps) {
           <p className="mt-1 font-mono text-xs text-slate-500">
             analysis #{result.analysis_id ?? "?"} · {result.audio.filename}
             {duration !== null ? ` · ${duration.toFixed(1)} s` : ""}
+            {result.cached ? " · ⚡ instant (cached — identical audio)" : ""}
           </p>
         </div>
         <button

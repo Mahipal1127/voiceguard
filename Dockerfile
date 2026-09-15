@@ -19,6 +19,11 @@ RUN python -m pip install --no-cache-dir torch --index-url https://download.pyto
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
+# Bake the model weights into the image: no Hugging Face downloads at
+# container startup (their anonymous rate-limiting made first analyses hang
+# for minutes on Railway). Weights come from the local models_store (~590 MB).
+COPY backend/models_store /app/models_store
+
 COPY backend/ .
 
 # Railway injects PORT; 8000 keeps local docker runs identical.

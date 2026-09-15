@@ -15,10 +15,12 @@ the event loop free so /health stays responsive during analysis.
 """
 
 import asyncio
+import hashlib
 import json
 import subprocess
 import time
 import uuid
+from collections import OrderedDict
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -30,6 +32,12 @@ router = APIRouter(tags=["analyze"])
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "tmp_uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Repeat-analysis cache (in-memory, per process): identical audio answers
+# instantly with "cached": true — ideal for replaying demo clips. Results are
+# honest (the response is flagged) and the cache is small and least-recently-used.
+_RESULT_CACHE: OrderedDict[str, dict] = OrderedDict()
+_RESULT_CACHE_MAX = 50
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB — generous for 10-30 s clips
 ALLOWED_SUFFIXES = {".wav", ".mp3", ".webm", ".ogg", ".m4a", ".flac"}
@@ -241,6 +249,14 @@ async def warmup() -> dict:
 async def analyze_audio(file: UploadFile = File(...)) -> dict:
     """Intake audio, transcribe (Phase 3) + speaker-match (Phase 4), respond."""
     path = _save_upload(file)
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    # Cache hit: same bytes as a recent analysis — answer instantly.
+    if digest in _RESULT_CACHE:
+        cached = dict(_RESULT_CACHE[digest])
+        cached["cached"] = True
+        return cached
+
     duration = _probe_duration_sec(path)
 
     # Run the three model signals in parallel threads (they are independent);
@@ -343,7 +359,7 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         )
         analysis_id = cur.lastrowid
 
-    return {
+    response = {
         "analysis_id": analysis_id,
         "status": "error" if tr["error"] else ("no_speech" if not transcript else "transcribed"),
         "audio": {"filename": path.name, "duration_sec": duration},
@@ -369,3 +385,8 @@ async def analyze_audio(file: UploadFile = File(...)) -> dict:
         "reasons": reasons,
         "pipeline_status": pipeline_status,
     }
+
+    _RESULT_CACHE[digest] = json.loads(json.dumps(response))
+    while len(_RESULT_CACHE) > _RESULT_CACHE_MAX:
+        _RESULT_CACHE.popitem(last=False)
+    return response

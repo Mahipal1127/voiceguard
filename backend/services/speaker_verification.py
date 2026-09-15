@@ -147,6 +147,8 @@ def extract_embedding(audio_path: str) -> list[float]:
 
     classifier = _get_classifier()
     audio = load_wav16k_mono(audio_path)
+    # 10 s is plenty for a stable voiceprint — bounds CPU time on long clips.
+    audio = audio[: 16000 * 10]
     # speechbrain 1.1.x exposes encode_batch (batch, time); torchaudio.load
     # routes through torchcodec on this setup, so decode via ffmpeg + wave.
     with torch.no_grad():

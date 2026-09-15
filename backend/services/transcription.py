@@ -17,7 +17,11 @@ from pathlib import Path
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models_store"
 MODELS_DIR.mkdir(exist_ok=True)
 
-DEFAULT_MODEL_SIZE = "base"
+DEFAULT_MODEL_SIZE = os.environ.get("WHISPER_MODEL", "base")
+# Faster options (set WHISPER_MODEL as an env var on Railway/HF/locally):
+#   "tiny"            — ~2-3x faster than base, slightly weaker English accuracy
+#   "distil-small.en" — near-base accuracy, roughly tiny-class speed
+#   "small"           — better accuracy (incl. Indian-English), ~2x slower
 
 _models: dict[str, object] = {}
 _lock = threading.Lock()
