@@ -56,8 +56,11 @@ Railway bills RAM by the hour — **set a usage limit** (Service → Settings �
 Limits) before deploying, and expect the trial to last days, not months. For a
 genuinely free always-on backend use Path C.
 
-1. **Add the deploy files** (already committed): `backend/Dockerfile` exists and
-   `backend/db.py` accepts a `VOICEGUARD_DB_PATH` env override for volumes.
+1. **Add the deploy files** (already committed): a root-level `Dockerfile`
+   (Railway/Railpack auto-detects it — no settings needed) and `backend/db.py`
+   accepts a `VOICEGUARD_DB_PATH` env override for volumes.
+   *Alternative:* set the service variable `RAILWAY_DOCKERFILE_PATH = backend/Dockerfile`
+   instead, or set Settings → Root Directory = `backend` — any one of the three works.
 2. **railway.app** → sign in with GitHub → **New Project → Deploy from GitHub repo**
    → select `Mahipal1127/voiceguard`.
 3. Service → **Settings**:
